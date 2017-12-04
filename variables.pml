@@ -73,7 +73,8 @@ inline thread_restore(proc)
     FOR_CTXT_IDX {
         ATStack[idx] = ctxt_ATStack[(proc - USER0) * NBCTXT + idx]
     }
-    idx = 0
+    idx = 0;
+    irq_pending = 0 // TODO
 }
 
 inline system_initialize()
