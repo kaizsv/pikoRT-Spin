@@ -9,14 +9,18 @@ bit all_process_prepare_to_run;
 
 inline set_pending(irq)
 {
+    d_step {
     assert(1 <= irq && irq < USER0);
     set_bit(irq, irq_pending)
+    }
 }
 
 inline clear_pending(irq)
 {
+    d_step {
     assert(1 <= irq && irq < USER0);
     clear_bit(irq, irq_pending)
+    }
 }
 
 /* return maxima priority exception from exception pending status
@@ -26,45 +30,54 @@ inline clear_pending(irq)
  */
 inline get_max_pending(ret)
 {
+    d_step {
     ret = UNKNOWN;
-    /* svc will not be pending */
+    /* SVC and PendSV will not be pending */
     for (idx: 1 .. (USER0 - 1)) {
         if
-        :: get_bit(idx, irq_pending) && (irq_priority[idx] < ret) ->
+        :: get_bit(idx, irq_pending) && (irq_prio[idx] < ret) ->
             ret = idx
-        :: else ->
-            skip
+        :: else -> skip
         fi
     }
     idx = 0;
     /* always has a max priority exception */
     assert(ret != UNKNOWN)
+    }
 }
 
 inline change_AT_directly(proc)
 {
+    d_step {
+    assert(PendSV < proc && proc < USER0);
     set_bit(proc, ghost_direct_AT);
     AT = proc
+    }
 }
 
 inline push_and_change_AT(proc)
 {
+    d_step {
     ATTop = ATTop + 1;
     assert(ATTop < NBALL);
     ATStack[ATTop] = AT;
     AT = proc
+    }
 }
 
 inline pop_ATStack_to_AT()
 {
+    d_step {
     AT = ATStack[ATTop];
     ATStack[ATTop] = UNKNOWN;
     assert(ATTop >= 0);
     ATTop = ATTop - 1
+    }
 }
 
 inline inATStack(proc, ret)
 {
+    d_step {
     ret = false;
     FOR_ATTOP_IDX {
         if
@@ -73,16 +86,13 @@ inline inATStack(proc, ret)
         fi
     }
     idx = 0
+    }
 }
 
 inline interrupt_policy(preempt, running, ret)
 {
+    d_step {
     if
-    :: (preempt == SVC || preempt == PendSV) && (running < USER0) ->
-        /* SVC is triggered by svc command */
-        /* PendSV is triggered by PendSVReq bit */
-        assert(preempt != SVC);
-        ret = false
     :: preempt == running ->
         assert(get_bit(preempt, ghost_direct_AT) || preempt == PendSV);
         /* the preemption can not be self */
@@ -102,18 +112,13 @@ inline interrupt_policy(preempt, running, ret)
         set_pending(preempt);
         get_max_pending(max_prio);
         if
-        :: irq_priority[max_prio] < irq_priority[running] ->
-            if
-            :: preempt == max_prio ->
-                ret = true
-            :: else ->
-                change_AT_directly(max_prio); //TODO: check
-                ret = false
-            fi
+        :: irq_prio[max_prio] < irq_prio[running] && preempt == max_prio ->
+            ret = true
         :: else ->
             ret = false
         fi
     fi
+    }
 }
 
 inline ITake(proc)
@@ -132,8 +137,7 @@ inline ITake(proc)
             clear_bit(proc, ghost_direct_AT);
             clear_pending(proc);
             break
-        :: else ->
-            skip
+        :: else -> skip
         fi
        }
     od
@@ -148,7 +152,7 @@ inline PendSVTake()
         if
         :: PendSVReq && !retInATStack && retPolicy ->
             clear_pending(PendSV);
-            push_and_change_AT(PendSV)
+            push_and_change_AT(PendSV);
             PendSVReq = false;
             break
         :: else ->
@@ -163,8 +167,8 @@ inline IRet()
 {
     if
     :: irq_pending != 0 ->
+        assert(!get_bit(PendSV, irq_pending));
         get_max_pending(max_prio);
-        assert(PendSV < max_prio && max_prio < USER0);
         inATStack(max_prio, retInATStack);
         interrupt_policy(max_prio, ATStack[ATTop], retPolicy);
         if
@@ -176,6 +180,14 @@ inline IRet()
     :: else ->
         pop_ATStack_to_AT()
     fi
+}
+
+inline sys_call(__svc_type)
+{
+    assert(USER0 <= curUser && curUser <= SOFTIRQ);
+    assert(ATTop < 0 && irq_pending == 0 && ghost_direct_AT == 0);
+    svc_type = __svc_type;
+    push_and_change_AT(SVC)
 }
 
 /* -------------
@@ -193,14 +205,15 @@ active proctype svc()
     (all_process_prepare_to_run);
 endSVC:
     AWAITS(_pid, ghost_svc = 1);
+    AWAITS(_pid, assert(svc_type != DEFAULT_SYS));
     if
-    :: svc_type = SYS_MUTEX_LOCK ->
+    :: svc_type == SYS_MUTEX_LOCK ->
         AWAITS(_pid, mutex = mutex + 1; assert(mutex));
         AWAITS(_pid, ti[curUser - USER0].ti_private = mutex);
         AWAITS(_pid, ti[curUser - USER0].ti_state = THREAD_STATE_BLOCKED);
         AWAITS(_pid, mutex_add_tail(curUser));
-        sched_elect(SCHED_OPT_NONE, _pid);
-    :: svc_type = SYS_MUTEX_UNLOCK ->
+        sched_elect(SCHED_OPT_NONE, _pid)
+    :: svc_type == SYS_MUTEX_UNLOCK ->
         AWAITS(_pid, mutex = mutex - 1);
         if
         :: mutex >= 0 ->
@@ -210,17 +223,19 @@ endSVC:
             AWAITS(_pid, skip)
         fi;
         if
-        :: ti[curUser - USER0].ti_state == THREAD_STATE_BLOCKED ->
+        :: get_ti_state(curUser) == THREAD_STATE_BLOCKED ->
             sched_elect(SCHED_OPT_NONE, _pid)
-        :: ti[curUser-USER0].ti_priority <= ti[max_prio-USER0].ti_priority ->
+        :: get_ti_prio(curUser) <= get_ti_prio(max_prio) ->
             sched_enqueue(curUser, _pid);
             sched_elect(SCHED_OPT_NONE, _pid)
         :: else ->
             AWAITS(_pid, skip)
         fi
-    :: svc_type = DEFAULT_SYS ->
-        sched_elect(SCHED_OPT_NONE, _pid);
+    :: svc_type == SYS_PTHREAD_YIELD ->
+        sched_enqueue(curUser, _pid);
+        sched_elect(SCHED_OPT_NONE, _pid)
     fi;
+    AWAITS(_pid, svc_type = DEFAULT_SYS);
     AWAITS(_pid, ghost_svc = 0; IRet());
 
     goto endSVC
@@ -259,7 +274,6 @@ endInts:
         /* using stm32_uartx_isr() as interrupt example */
         /* this isr will not influence the scheduling behavior */
         /* only updates charactor buffer and calls an empty callback func */
-        // TODO: check
         AWAITS(_pid, skip)
     fi;
     AWAITS(_pid, IRet());
@@ -274,7 +288,7 @@ active [NBUSERS] proctype users()
     assert(USER0 <= _pid && _pid < SOFTIRQ);
     (all_process_prepare_to_run);
 endUsers:
-    AWAITS(_pid, skip)
+    AWAITS(_pid, skip);
 
     goto endUsers
 }
@@ -289,15 +303,10 @@ active proctype softirq()
     (all_process_prepare_to_run);
 endSoftirq:
     tasklet_action(_pid);
-    if
-    :: next_task_func == NO_BH_TASK ->
-        /* sched yield */
-        sched_enqueue(SOFTIRQ, _pid);
-        sched_elect(SCHED_OPT_NONE, _pid);
-    :: else ->
-        /* softirqd thread should not return */
-        AWAITS(_pid, assert(false))
-    fi
+    /* softirqd thread should not return */
+    AWAITS(_pid, assert(next_task_func == NO_BH_TASK));
+    /* sched yield */
+    AWAITS(_pid, sys_call(SYS_PTHREAD_YIELD));
 
     goto endSoftirq
 }
@@ -309,23 +318,11 @@ init
 
     d_step {
         system_initialize();
-        thread_info_initialize();
         mutex_initialize()
     };
+    thread_info_initialize();
     all_process_prepare_to_run = 1;
-    //sched_enqueue(USER0, AT);
-    //sched_enqueue(SOFTIRQ);
-    //push_and_change_AT(2);
-    //push_and_change_AT(PendSV);
-    //sched_elect(SCHED_OPT_TICK);
-    //switch_to(curUser);
-    //curUser = nextUser;
-    //thread_restore(curUser);
-    //sched_dequeue(USER0, AT);
-    //sched_dequeue(5, AT);
-    //sched_dequeue(6, AT);
-    //tasklet_schedule(BH_SYSTICK, TIMER_SOFTIRQ_PRIO);
-    //tasklet_action()
+
 endPendSV:
     PendSVTake();
 

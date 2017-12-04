@@ -34,12 +34,12 @@ inline sched_enqueue(new, tid)
 inline sched_dequeue(del, tid)
 {
     if
-    :: ti[del - USER0].ti_state == THREAD_STATE_ACTIVED ->
+    :: get_ti_state(del) == THREAD_STATE_ACTIVED ->
         sched_bitmap_dequeue(del, get_ti_prio(del), sched._bm[SCHED_BITMAP_ACTIVE], tid)
-    :: ti[del - USER0].ti_state == THREAD_STATE_EXPIRED ->
+    :: get_ti_state(del) == THREAD_STATE_EXPIRED ->
         sched_bitmap_dequeue(del, get_ti_prio(del), sched._bm[SCHED_BITMAP_EXPIRE], tid)
     :: else ->
-        AWAITS(tid, assert(false))
+        AWAITS(tid, skip)
     fi
 }
 

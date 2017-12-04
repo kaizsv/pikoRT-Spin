@@ -36,11 +36,11 @@
 #ifndef _VARIABLES_
 #define _VARIABLES_
 
-mtype = { DEFAULT_SYS, SYS_MUTEX_LOCK, SYS_MUTEX_UNLOCK };
+mtype = { DEFAULT_SYS, SYS_MUTEX_LOCK, SYS_MUTEX_UNLOCK, SYS_PTHREAD_YIELD};
 mtype svc_type = DEFAULT_SYS;
 
 int irq_pending;
-byte irq_priority[NBINTS + 2];
+byte irq_prio[NBINTS + 2];
 bit PendSVReq;
 pid AT;
 pid ATStack[NBALL];
@@ -58,23 +58,26 @@ bit ghost_svc;
 
 inline switch_to(proc)
 {
+    d_step {
     assert(USER0 <= proc && proc <= SOFTIRQ);
     ctxt_ATTop[proc - USER0] = ATTop;
     FOR_CTXT_IDX {
         ctxt_ATStack[(proc - USER0) * NBCTXT + idx] = ATStack[idx]
     }
     idx = 0
+    }
 }
 
 inline thread_restore(proc)
 {
+    d_step {
     assert(USER0 <= proc && proc <= SOFTIRQ);
     ATTop = ctxt_ATTop[proc - USER0];
     FOR_CTXT_IDX {
         ATStack[idx] = ctxt_ATStack[(proc - USER0) * NBCTXT + idx]
     }
-    idx = 0;
-    irq_pending = 0 // TODO
+    idx = 0
+    }
 }
 
 inline system_initialize()
@@ -89,14 +92,14 @@ inline system_initialize()
     idx = 0;
 
     /* setting exceptin priority */
-    irq_priority[SVC] = 16;
-    irq_priority[PendSV] = 16;
+    irq_prio[SVC] = 16;
+    irq_prio[PendSV] = 16;
     FOR_EXCEP_IDX {
         if
         /* priority 3 for systick */
-        :: idx == 2 -> irq_priority[idx] = 3
+        :: idx == 2 -> irq_prio[idx] = 3
         /* minimal priority for others */
-        :: else -> irq_priority[idx] = 16
+        :: else -> irq_prio[idx] = 16
         fi
     }
     idx = 0;

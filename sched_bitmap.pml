@@ -52,17 +52,18 @@ inline find_next_thread(bm, ret, tid)
 // TODO: move out of the sched_bitmap.pml
 inline add_queue_tail(new, prio, bm)
 {
+    d_step {
     for (idx: 0 .. (NB_WAIT_TASKS - 1)) {
         if
         :: bm.queue[prio * NB_WAIT_TASKS + idx] == UNKNOWN ->
             bm.queue[prio * NB_WAIT_TASKS + idx] = new;
             break
-        :: else ->
-            // TODO: What happen if all slots are full?
-            assert(idx < NB_WAIT_TASKS)
+        :: else -> skip
+        // TODO: What happen if all slots are full?
         fi
     }
-    idx = 0;
+    idx = 0
+    }
 }
 
 inline sched_bitmap_enqueue(new, prio, tid)
@@ -71,48 +72,61 @@ inline sched_bitmap_enqueue(new, prio, tid)
     AWAITS(tid, set_bit(prio, sched._bm[SCHED_BITMAP_ACTIVE].map))
 }
 
+// TODO: split into two inlines
 inline del_queue(del, prio, bm)
 {
+    d_step {
     for (idx: 0 .. (NB_WAIT_TASKS - 1)) {
         if
         :: (bm.queue[prio * NB_WAIT_TASKS + idx] == del) && !del_queue_check ->
             del_queue_check = true;
         :: else ->
-            skip
-        fi;
-        if
-        :: del_queue_check ->
             if
-            :: idx == (NB_WAIT_TASKS - 1) ->
-                bm.queue[prio * NB_WAIT_TASKS + idx] = UNKNOWN
-            :: else ->
-                bm.queue[prio * NB_WAIT_TASKS + idx] = 
-                    bm.queue[prio * NB_WAIT_TASKS + idx + 1]
+            :: del_queue_check ->
+                /* del_queue_check */
+                bm.queue[prio * NB_WAIT_TASKS + idx - 1] =
+                    bm.queue[prio * NB_WAIT_TASKS + idx]
+                if
+                :: idx == (NB_WAIT_TASKS - 1) ->
+                    bm.queue[prio * NB_WAIT_TASKS + idx] = UNKNOWN
+                :: else -> skip
+                fi
+            :: else -> skip
             fi
-        :: else ->
-            skip
         fi
     }
     idx = 0;
     del_queue_check = false
+    }
+}
+
+inline bitmap_queue_del(del, prio, bm, tid)
+{
+    AWAITS(tid, del_queue(del, prio, bm));
+    if
+    :: bm.queue[prio * NB_WAIT_TASKS + 0] == UNKNOWN ->
+        /* list empty */
+        AWAITS(tid, clear_bit(prio, bm.map))
+    :: else ->
+        AWAITS(tid, skip)
+    fi
 }
 
 inline sched_bitmap_dequeue(dequeue, prio, bm, tid)
 {
     if
     :: dequeue != curUser ->
-        AWAITS(tid, del_queue(dequeue, prio, bm));
-        if
-        :: bm.queue[prio * NB_WAIT_TASKS + 0] == UNKNOWN ->
-            /* list empty */
-            AWAITS(tid, clear_bit(prio, bm.map))
-        :: else ->
-            AWAITS(tid, skip)
-        fi
+        bitmap_queue_del(dequeue, prio, bm, tid)
     :: else ->
         /* active thread is not in the runqueue */
         AWAITS(tid, skip)
     fi
+}
+
+inline swap_sched_state()
+{
+    sched.is_swap = sched.is_swap ^ 1;
+    swap_sched_state_map()
 }
 
 inline sched_bitmap_elect(flags, tid)
@@ -124,7 +138,7 @@ inline sched_bitmap_elect(flags, tid)
     find_next_thread(sched._bm[SCHED_BITMAP_EXPIRE], tempUser, tid);
     if
     :: (nextUser == IDLE_THREAD && tempUser != IDLE_THREAD) ->
-        AWAITS(tid, sched.is_swap = sched.is_swap ^ 1);
+        AWAITS(tid, swap_sched_state());
         find_next_thread(sched._bm[SCHED_BITMAP_ACTIVE], nextUser, tid)
     :: else ->
         AWAITS(tid, skip)
@@ -133,20 +147,22 @@ inline sched_bitmap_elect(flags, tid)
     /* idle thread */
     if
     :: nextUser != IDLE_THREAD ->
-        sched_bitmap_dequeue(nextUser, get_ti_prio(nextUser), sched._bm[SCHED_BITMAP_ACTIVE], tid)
+        bitmap_queue_del(nextUser, get_ti_prio(nextUser), sched._bm[SCHED_BITMAP_ACTIVE], tid)
     :: else ->
         AWAITS(tid, skip)
     fi;
 
-    /* TODO: context switch */
+    /* context switch */
     if
-    :: flags == SCHED_OPT_RESTORE_ONLY ->
-        /* restore only */
-        AWAITS(tid, curUser = nextUser);
-        AWAITS(tid, thread_restore(curUser))
-    :: (flags != SCHED_OPT_RESTORE_ONLY) && (nextUser == IDLE_THREAD || nextUser == curUser) ->
-        AWAITS(tid, skip)
+//    :: flags == SCHED_OPT_RESTORE_ONLY ->
+//        TODO: thread exit has not been implemented yet.
+//        /* restore only */
+//        AWAITS(tid, curUser = nextUser);
+//        AWAITS(tid, thread_restore(curUser))
+    :: (nextUser == IDLE_THREAD || nextUser == curUser) ->
+        AWAITS(tid, assert(flags != SCHED_OPT_RESTORE_ONLY))
     :: else ->
+        AWAITS(tid, assert(flags != SCHED_OPT_RESTORE_ONLY))
         if
         :: flags == SCHED_OPT_TICK ->
             /* task enqueue to SCHED_BITMAP_EXPIRE */
@@ -158,7 +174,7 @@ inline sched_bitmap_elect(flags, tid)
         fi;
         AWAITS(tid, switch_to(curUser));
         AWAITS(tid, curUser = nextUser);
-        AWAITS(tid, thread_restore(curUser));
+        AWAITS(tid, thread_restore(curUser))
     fi
 }
 

@@ -7,6 +7,7 @@
 #include "sched_bitmap.pml"
 #include "systick.pml"
 
+#define PRIO_TASKLET_MINPRIO 31
 #define TIMER_SOFTIRQ_PRIO 0
 
 #define NO_BH_TASK 0
@@ -34,13 +35,9 @@ inline tasklet_bitmap_enqueue(new, prio, tid)
 
 inline tasklet_schedule(task, prio, tid)
 {
-    if
-    :: task != NO_BH_TASK ->
-        tasklet_bitmap_enqueue(task, prio, tid);
-        raise_softirq(tid)
-    :: else ->
-        AWAITS(tid, skip)
-    fi
+    AWAITS(tid, assert(task != NO_BH_TASK || prio <= PRIO_TASKLET_MINPRIO));
+    tasklet_bitmap_enqueue(task, prio, tid);
+    raise_softirq(tid)
 }
 
 inline tasklet_action(tid)
@@ -51,16 +48,15 @@ inline tasklet_action(tid)
         :: prio_tasklet.map != 0 ->
             AWAITS(tid, find_first_bit(prio_tasklet.map, max_prio));
             AWAITS(tid, bitmap_first_entry(prio_tasklet, max_prio, next_task_func));
-            sched_bitmap_dequeue(next_task_func, max_prio, prio_tasklet, tid);
+            bitmap_queue_del(next_task_func, max_prio, prio_tasklet, tid);
 
-            if
-            :: next_task_func == BH_SYSTICK ->
-                // TODO: systick_bh
-                systick_bh(tid)
-            :: else ->
-                /* the elected tasketlet must be systick buttom half */
-                AWAITS(tid, assert(false))
-            fi
+            /* XXX:
+             * if there are more than 1 buttom helf exception
+             * use condition instruction rather than assert.
+             */
+            /* the elected tasketlet must be systick buttom half */
+            AWAITS(tid, assert(next_task_func == BH_SYSTICK));
+            systick_bh(tid);
         :: else ->
             AWAITS(tid, next_task_func = NO_BH_TASK; break);
         fi
