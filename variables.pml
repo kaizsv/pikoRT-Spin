@@ -77,7 +77,7 @@ inline thread_restore(proc)
         }
         idx = 0;
         for (idx: 1 .. (NBALL - 1)) {
-            ATStack[idx] = UNKNOWN
+            assert(ATStack[idx] == UNKNOWN)
         }
         idx = 0
     }
@@ -122,7 +122,7 @@ inline system_initialize()
      * |NBCTXT == NBALL|
      */
     FOR_USER_LOCAL_IDX {
-        ctxt_ATStack[idx * NBCTXT + 0] = idx
+        ctxt_ATStack[idx * NBCTXT + 0] = (idx + USER0)
     }
     idx = 0;
     ctxt_ATStack[(SOFTIRQ - USER0) * NBCTXT + 0] = SOFTIRQ

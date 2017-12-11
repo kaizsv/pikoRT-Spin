@@ -39,7 +39,6 @@ inline find_next_thread(bm, ret, tid)
 {
     AWAITS(tid, find_first_bit(bm.map, max_prio));
 
-    // TODO: IDLE_THREAD, idle_thread is in privileged mode
     if
     :: max_prio == 31 ->
         AWAITS(tid, ret = IDLE_THREAD)
@@ -49,7 +48,7 @@ inline find_next_thread(bm, ret, tid)
     AWAITS(tid, assert(ret != UNKNOWN))
 }
 
-// TODO: move out of the sched_bitmap.pml
+// XXX: can move out of the sched_bitmap.pml
 inline add_queue_tail(new, prio, bm)
 {
     d_step {
@@ -72,7 +71,10 @@ inline sched_bitmap_enqueue(new, prio, tid)
     AWAITS(tid, set_bit(prio, sched._bm[SCHED_BITMAP_ACTIVE].map))
 }
 
-// TODO: split into two inlines
+/* XXX
+ * del_queue will remove the task from runqueue and move the slots behind
+ * the task forward to act as the delection in link list
+ */
 inline del_queue(del, prio, bm)
 {
     d_step {
