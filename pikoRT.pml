@@ -9,18 +9,14 @@ bit all_process_prepare_to_run;
 
 inline set_pending(irq)
 {
-    d_step {
     assert(1 <= irq && irq < USER0);
     set_bit(irq, irq_pending)
-    }
 }
 
 inline clear_pending(irq)
 {
-    d_step {
     assert(1 <= irq && irq < USER0);
     clear_bit(irq, irq_pending)
-    }
 }
 
 /* return maxima priority exception from exception pending status
@@ -31,93 +27,92 @@ inline clear_pending(irq)
 inline get_max_pending(ret)
 {
     d_step {
-    ret = UNKNOWN;
-    /* SVC and PendSV will not be pending */
-    for (idx: 1 .. (USER0 - 1)) {
-        if
-        :: get_bit(idx, irq_pending) && (irq_prio[idx] < ret) ->
-            ret = idx
-        :: else -> skip
-        fi
-    }
-    idx = 0;
-    /* always has a max priority exception */
-    assert(ret != UNKNOWN)
+        ret = UNKNOWN;
+        /* SVC and PendSV will not be pending */
+        for (idx: 1 .. (USER0 - 1)) {
+            if
+            :: get_bit(idx, irq_pending) && (irq_prio[idx] < ret) ->
+                ret = idx
+            :: else -> skip
+            fi
+        }
+        idx = 0;
+        /* always has a max priority exception */
+        assert(ret != UNKNOWN)
     }
 }
 
 inline change_AT_directly(proc)
 {
-    d_step {
     assert(PendSV < proc && proc < USER0);
     set_bit(proc, ghost_direct_AT);
     AT = proc
-    }
 }
 
 inline push_and_change_AT(proc)
 {
     d_step {
-    ATTop = ATTop + 1;
-    assert(ATTop < NBALL);
-    ATStack[ATTop] = AT;
-    AT = proc
+        ATTop = ATTop + 1;
+        assert(ATTop < NBALL);
+        ATStack[ATTop] = AT;
+        AT = proc
     }
 }
 
 inline pop_ATStack_to_AT()
 {
     d_step {
-    AT = ATStack[ATTop];
-    ATStack[ATTop] = UNKNOWN;
-    assert(ATTop >= 0);
-    ATTop = ATTop - 1
+        AT = ATStack[ATTop];
+        ATStack[ATTop] = UNKNOWN;
+        assert(ATTop >= 0);
+        ATTop = ATTop - 1
     }
 }
 
 inline inATStack(proc, ret)
 {
     d_step {
-    ret = false;
-    FOR_ATTOP_IDX {
-        if
-        :: ATStack[idx] == proc -> ret = true; break
-        :: else -> skip
-        fi
-    }
-    idx = 0
+        ret = false;
+        FOR_ATTOP_IDX {
+            if
+            :: ATStack[idx] == proc ->
+                ret = true; break
+            :: else -> skip
+            fi
+        }
+        idx = 0
     }
 }
 
 inline interrupt_policy(preempt, running, ret)
 {
     d_step {
-    if
-    :: preempt == running ->
-        assert(get_bit(preempt, ghost_direct_AT) || preempt == PendSV);
-        /* the preemption can not be self */
-        ret = false
-    :: running >= USER0 ->
-        /* the exception always takes while user task is running */
-        /* and there remain nothing in ATStack */
-        assert(ATTop <= 0 && preempt != SVC);
-        /* if PendSV preempt user task, setting the pending bit of PendSV */
-        /* has no side-effect */
-        set_pending(preempt);
-        ret = true
-    :: else ->
-        assert(running < USER0);
-        /* nested interrupt */
-        /* compare the priority of pending and preemtive exception */
-        set_pending(preempt);
-        get_max_pending(max_prio);
         if
-        :: irq_prio[max_prio] < irq_prio[running] && preempt == max_prio ->
+        :: preempt == running ->
+            assert(get_bit(preempt, ghost_direct_AT) || preempt == PendSV);
+            /* the preemption can not be self */
+            ret = false
+        :: running >= USER0 ->
+            /* the exception always takes while user task is running */
+            /* and there remain nothing in ATStack */
+            assert(ATTop <= 0 && preempt != SVC);
+            /* if PendSV preempt user task, setting the pending bit of PendSV */
+            /* has no side-effect */
+            set_pending(preempt);
             ret = true
         :: else ->
-            ret = false
+            assert(running < USER0);
+            /* nested interrupt */
+            /* compare the priority of pending and preemtive exception */
+            set_pending(preempt);
+            get_max_pending(max_prio);
+            if
+            :: irq_prio[max_prio] < irq_prio[running] && preempt == max_prio ->
+                ret = true
+            :: else ->
+                ret = false
+            fi
         fi
-    fi
     }
 }
 

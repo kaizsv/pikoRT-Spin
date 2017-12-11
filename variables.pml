@@ -20,7 +20,7 @@
 #define SOFTIRQ (2 + NBINTS + NBUSERS)
 #define NBROUTS (2 + NBINTS + NBUSERS)
 #define NBALL (NBROUTS + 1)
-#define NBCTXT NBALL
+#define NBCTXT 1
 #define UNKNOWN 255
 #define IDLE_THREAD 254
 
@@ -48,9 +48,8 @@ int ATTop;
 pid nextUser;
 pid curUser;
 
-//bit ctxt_preempt[NBUSERS];
-pid ctxt_ATStack[(NBUSERS + 1) * NBCTXT];//TODO: can be smaller
-int ctxt_ATTop[NBUSERS + 1];
+pid ctxt_ATStack[(NBUSERS + 1) * NBCTXT];
+//int ctxt_ATTop[NBUSERS + 1];
 
 bit ghost_softirq;
 int ghost_direct_AT;
@@ -59,24 +58,28 @@ bit ghost_svc;
 inline switch_to(proc)
 {
     d_step {
-    assert(USER0 <= proc && proc <= SOFTIRQ);
-    ctxt_ATTop[proc - USER0] = ATTop;
-    FOR_CTXT_IDX {
-        ctxt_ATStack[(proc - USER0) * NBCTXT + idx] = ATStack[idx]
-    }
-    idx = 0
+        assert(USER0 <= proc && proc <= SOFTIRQ && ATTop == 0);
+        assert(USER0 <= ATStack[ATTop] && ATStack[ATTop] <= SOFTIRQ);
+        FOR_CTXT_IDX {
+            ctxt_ATStack[(proc - USER0) * NBCTXT + idx] = ATStack[idx]
+        }
+        idx = 0
     }
 }
 
 inline thread_restore(proc)
 {
     d_step {
-    assert(USER0 <= proc && proc <= SOFTIRQ);
-    ATTop = ctxt_ATTop[proc - USER0];
-    FOR_CTXT_IDX {
-        ATStack[idx] = ctxt_ATStack[(proc - USER0) * NBCTXT + idx]
-    }
-    idx = 0
+        assert(USER0 <= proc && proc <= SOFTIRQ);
+        ATTop = 0;
+        FOR_CTXT_IDX {
+            ATStack[idx] = ctxt_ATStack[(proc - USER0) * NBCTXT + idx]
+        }
+        idx = 0;
+        for (idx: 1 .. (NBALL - 1)) {
+            ATStack[idx] = UNKNOWN
+        }
+        idx = 0
     }
 }
 
@@ -104,22 +107,24 @@ inline system_initialize()
     }
     idx = 0;
 
-    /* setting context */
-    FOR_USER_IDX {
-        for (idx2: 1 .. (NBCTXT - 1)) {
-            ctxt_ATStack[(idx - USER0) * NBCTXT + idx2] = UNKNOWN
-        }
-        idx2 = 0;
-
-        ctxt_ATTop[idx - USER0] = 0;
-        ctxt_ATStack[(idx - USER0) * NBCTXT + 0] = idx
+    /* XXX setting context
+     * Strictly speaking, the ctxt_ATStack need to store the whole ATStack.
+     * But durning the context switch, the ATStack remains UNKNOWN except
+     * ATStack[0] to be curUser and ATTop to be 0.
+     *
+     * To reduce size of ctxt_ATStack, the NBCTXT is setting to 1 and there
+     * is no need to store the ctxt_ATTop. If the NBCTXT must be set greater
+     * than 1, each ATStack in ctxt_ATStack need to be UNKNOWN except the
+     * ATStack[0] to be self user id and the ctxt_ATTop must be 0.
+     *
+     * For example: ctxt_ATStack
+     * | 4 U U U U U U | 5 U U U U U U | 6 U U U U U U |
+     * |NBCTXT == NBALL|
+     */
+    FOR_USER_LOCAL_IDX {
+        ctxt_ATStack[idx * NBCTXT + 0] = idx
     }
     idx = 0;
-    for (idx2: 1 .. (NBCTXT - 1)) {
-        ctxt_ATStack[(SOFTIRQ - USER0) * NBCTXT + idx2] = UNKNOWN
-    }
-    idx2 = 0;
-    ctxt_ATTop[SOFTIRQ - USER0] = 0;
     ctxt_ATStack[(SOFTIRQ - USER0) * NBCTXT + 0] = SOFTIRQ
 }
 
