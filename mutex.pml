@@ -20,11 +20,6 @@ inline mutex_add_tail(proc)
     mutex_head[mutex_top] = proc
 }
 
-//inline mutex_del(proc)
-//{
-//    skip
-//}
-
 /* The inline can typically split into two inlines:
  * find_first_blocking_task and mutex_del.
  */
@@ -64,32 +59,20 @@ lock_0:
     if
     :: __mutex != -1 ->
         /* bne 1f */
-        goto lock_1
+        /* svc to #SYS_PTHREAD_MUTEX_LOCK */
+        AWAITS(tid, sys_call(SYS_MUTEX_LOCK))
     :: else ->
-        AWAITS(tid, skip)
+        /* strex r1, r2, [r0] */
+        if
+        :: local_monitor == 1 ->
+            AWAITS(tid, __mutex = 0; local_monitor = 0)
+        :: else ->
+            /* bne 0b */
+            goto lock_0
+        fi;
     fi;
 
-    /* strex r1, r2, [r0] */
-    if
-    :: local_monitor == 1 ->
-        AWAITS(tid, __mutex = 0; local_monitor = 0)
-    :: else ->
-        /* bne 0b */
-        goto lock_0
-    fi;
-
-    /* movs r0, #0 */
-    if
-    :: __mutex != 0 ->
-        AWAITS(tid, __mutex = 0)
-    :: else ->
-        goto lock_out
-    fi;
-lock_1:
-    /* svc to #SYS_PTHREAD_MUTEX_LOCK */
-    AWAITS(tid, sys_call(SYS_MUTEX_LOCK));
-
-lock_out:
+    /* no need to move #0 to r0 */
 }
 
 inline mutex_unlock(__mutex, tid)
@@ -101,32 +84,20 @@ unlock_0:
     if
     :: __mutex != 0 ->
         /* bne 1f */
-        goto unlock_1
+        /* svc to #SYS_PTHREAD_MUTEX_UNLOCK */
+        AWAITS(tid, sys_call(SYS_MUTEX_UNLOCK));
     :: else ->
-        AWAITS(tid, skip)
+        /* strex r1, r2, [r0] */
+        if
+        :: local_monitor == 1 ->
+            AWAITS(tid, __mutex = -1; local_monitor = 0)
+        :: else ->
+            /* bne 0b */
+            goto unlock_0
+        fi;
     fi;
 
-    /* strex r1, r2, [r0] */
-    if
-    :: local_monitor == 1 ->
-        AWAITS(tid, __mutex = -1; local_monitor = 0)
-    :: else ->
-        /* bne 0b */
-        goto unlock_0
-    fi;
-
-    /* movs r0, #0 */
-    if
-    :: __mutex != 0 ->
-        AWAITS(tid, __mutex = 0)
-    :: else ->
-        goto unlock_out
-    fi;
-unlock_1:
-    /* svc to #SYS_PTHREAD_MUTEX_UNLOCK */
-    AWAITS(tid, sys_call(SYS_MUTEX_UNLOCK));
-
-unlock_out:
+    /* no need to move #0 to r0 */
 }
 
 inline mutex_initialize()

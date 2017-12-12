@@ -11,8 +11,9 @@
  * the minimal priority can only be 30. However, the minimal priority
  * is 31 in pikoRT source code.
  */
+#define NBITMAP_BIT BITMAP_BITS
 #define PRI_MAX 0
-#define PRI_MIN 30
+#define PRI_MIN (NBITMAP_BIT - 1)
 
 /*
  * Local define

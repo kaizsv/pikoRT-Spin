@@ -17,11 +17,11 @@ inline clear_bit(b, word)
     }
 }
 
-inline find_first_bit(addr, ret)
+inline find_first_bit(addr, ret, pri_min)
 {
     d_step {
         ret = 0;
-        for (idx: 0 .. 30) {
+        for (idx: 0 .. pri_min) {
             if
             :: (addr & (1 << idx)) == 0 -> ret = ret + 1;
             :: else -> break

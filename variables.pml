@@ -12,7 +12,8 @@
  * to repesent the usage of arrays. Change partial variables' datatype
  * from "byte" to "short" if you want to verify more processes.
  */
-#define NBUSERS 2
+#define BITMAP_BITS 3
+#define NBUSERS (BITMAP_BITS - 1)
 #define NBINTS 2
 #define SVC 0
 #define PendSV 1

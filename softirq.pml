@@ -46,7 +46,7 @@ inline tasklet_action(tid)
     :: true ->
         if
         :: prio_tasklet.map != 0 ->
-            AWAITS(tid, find_first_bit(prio_tasklet.map, max_prio));
+            AWAITS(tid, find_first_bit(prio_tasklet.map, max_prio, PRI_MIN));
             AWAITS(tid, bitmap_first_entry(prio_tasklet, max_prio, next_task_func));
             bitmap_queue_del(next_task_func, max_prio, prio_tasklet, tid);
 

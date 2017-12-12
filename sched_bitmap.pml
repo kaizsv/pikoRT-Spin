@@ -8,8 +8,8 @@
 
 #define NB_WAIT_TASKS (NBUSERS + 1)
 typedef bitmap_struct {
-    unsigned map : 31 = 0;
-    byte queue[31 * NB_WAIT_TASKS] = UNKNOWN
+    unsigned map : NBITMAP_BIT = 0;
+    byte queue[NBITMAP_BIT * NB_WAIT_TASKS] = UNKNOWN
 };
 
 /*
@@ -37,10 +37,10 @@ inline bitmap_first_entry(bm, p, ret)
 
 inline find_next_thread(bm, ret, tid)
 {
-    AWAITS(tid, find_first_bit(bm.map, max_prio));
+    AWAITS(tid, find_first_bit(bm.map, max_prio, PRI_MIN));
 
     if
-    :: max_prio == 31 ->
+    :: max_prio == NBITMAP_BIT ->
         AWAITS(tid, ret = IDLE_THREAD)
     :: else ->
         AWAITS(tid, bitmap_first_entry(bm, max_prio, ret))
