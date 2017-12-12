@@ -26,7 +26,6 @@
 
 #define FOR_EXCEP_IDX for (idx: 2 .. (2 + NBINTS - 1))
 #define FOR_USER_IDX for (idx: USER0 .. (USER0 + NBUSERS - 1))
-#define FOR_USER_LOCAL_IDX for (idx: 0 .. (NBUSERS - 1))
 #define FOR_ALL_IDX for (idx: 0 .. (NBALL - 1))
 #define FOR_CTXT_IDX for (idx: 0 .. (NBCTXT - 1))
 #define FOR_ATTOP_IDX for (idx: 0 .. ATTop)
@@ -54,6 +53,14 @@ pid ctxt_ATStack[(NBUSERS + 1) * NBCTXT];
 bit ghost_softirq;
 int ghost_direct_AT;
 bit ghost_svc;
+
+inline sys_call(__svc_type)
+{
+    assert(USER0 <= curUser && curUser <= SOFTIRQ);
+    assert(ATTop < 0 && irq_pending == 0 && ghost_direct_AT == 0);
+    svc_type = __svc_type;
+    push_and_change_AT(SVC)
+}
 
 inline switch_to(proc)
 {
@@ -121,8 +128,8 @@ inline system_initialize()
      * | 4 U U U U U U | 5 U U U U U U | 6 U U U U U U |
      * |NBCTXT == NBALL|
      */
-    FOR_USER_LOCAL_IDX {
-        ctxt_ATStack[idx * NBCTXT + 0] = (idx + USER0)
+    FOR_USER_IDX {
+        ctxt_ATStack[(idx - USER0) * NBCTXT + 0] = idx
     }
     idx = 0;
     ctxt_ATStack[(SOFTIRQ - USER0) * NBCTXT + 0] = SOFTIRQ

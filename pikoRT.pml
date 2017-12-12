@@ -177,14 +177,6 @@ inline IRet()
     fi
 }
 
-inline sys_call(__svc_type)
-{
-    assert(USER0 <= curUser && curUser <= SOFTIRQ);
-    assert(ATTop < 0 && irq_pending == 0 && ghost_direct_AT == 0);
-    svc_type = __svc_type;
-    push_and_change_AT(SVC)
-}
-
 /* -------------
  * all processes
  * ------------ */
@@ -203,16 +195,23 @@ endSVC:
     AWAITS(_pid, assert(svc_type != DEFAULT_SYS));
     if
     :: svc_type == SYS_MUTEX_LOCK ->
-        AWAITS(_pid, mutex = mutex + 1; assert(mutex));
-        AWAITS(_pid, ti[curUser - USER0].ti_private = mutex);
-        AWAITS(_pid, ti[curUser - USER0].ti_state = THREAD_STATE_BLOCKED);
-        AWAITS(_pid, mutex_add_tail(curUser));
-        sched_elect(SCHED_OPT_NONE, _pid)
+        AWAITS(_pid, mutex = mutex + 1);
+        if
+        :: mutex != 0 ->
+            AWAITS(_pid, ti[curUser - USER0].ti_private = mutex);
+            AWAITS(_pid, ti[curUser - USER0].ti_state = THREAD_STATE_BLOCKED);
+            AWAITS(_pid, mutex_add_tail(curUser));
+            sched_elect(SCHED_OPT_NONE, _pid)
+        :: else ->
+            AWAITS(_pid, skip)
+        fi
     :: svc_type == SYS_MUTEX_UNLOCK ->
+        AWAITS(_pid, max_prio = UNKNOWN);
         AWAITS(_pid, mutex = mutex - 1);
         if
         :: mutex >= 0 ->
-            AWAITS(_pid, find_first_blocking_task(max_prio));
+            AWAITS(_pid, find_first_blocking_task_and_del(max_prio));
+            /* XXX: mutex_del(max_prio) */
             sched_enqueue(max_prio, _pid)
         :: else ->
             AWAITS(_pid, skip)
@@ -220,7 +219,7 @@ endSVC:
         if
         :: get_ti_state(curUser) == THREAD_STATE_BLOCKED ->
             sched_elect(SCHED_OPT_NONE, _pid)
-        :: get_ti_prio(curUser) <= get_ti_prio(max_prio) ->
+        :: max_prio != UNKNOWN && get_ti_prio(curUser) <= get_ti_prio(max_prio) ->
             sched_enqueue(curUser, _pid);
             sched_elect(SCHED_OPT_NONE, _pid)
         :: else ->
@@ -283,7 +282,13 @@ active [NBUSERS] proctype users()
     assert(USER0 <= _pid && _pid < SOFTIRQ);
     (all_process_prepare_to_run);
 endUsers:
-    AWAITS(_pid, skip);
+    if
+    :: _pid == USER0 ->
+        mutex_lock(mutex, _pid);
+        mutex_unlock(mutex, _pid)
+    :: else ->
+        AWAITS(_pid, skip)
+    fi;
 
     goto endUsers
 }

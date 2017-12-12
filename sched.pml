@@ -45,7 +45,6 @@ inline sched_dequeue(del, tid)
 
 inline sched_elect(flags, tid)
 {
-    //TODO: need to check
     sched_bitmap_elect(flags, tid)
     AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_RUNNING);
 }
