@@ -8,6 +8,10 @@ OUT = pan
 MLIMIT ?= 1024
 MAXMLIMIT = 53248 # maxima memory usage 52G
 
+ifdef MA
+SPINFLAGS += -DMA=$(MA)
+endif
+
 $(OUT).c:
 	$(SPIN) -a $(TARGET)
 
