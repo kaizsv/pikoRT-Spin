@@ -52,7 +52,7 @@ inline tasklet_action(tid)
 
             /* XXX:
              * To prevent the unreached statement, using assert rather than
-             * condition instruction. If more than one buttom helf functions
+             * condition instruction. If more than one bottom half functions
              * are used need to re-write with condition
              *
              * if
