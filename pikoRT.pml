@@ -28,7 +28,7 @@ inline get_max_pending(ret)
 {
     d_step {
         ret = UNKNOWN;
-        /* SVC and PendSV will not be pending */
+        /* SVC will not be pending, and pending of PendSV has no effect */
         for (idx: 1 .. (USER0 - 1)) {
             if
             :: get_bit(idx, irq_pending) && (irq_prio[idx] < ret) ->
@@ -42,9 +42,11 @@ inline get_max_pending(ret)
     }
 }
 
+/* similar to tail-chaining */
 inline change_AT_directly(proc)
 {
     assert(PendSV < proc && proc < USER0);
+    assert(ghost_direct_AT < (1 << proc));
     set_bit(proc, ghost_direct_AT);
     AT = proc
 }
@@ -52,10 +54,20 @@ inline change_AT_directly(proc)
 inline push_and_change_AT(proc)
 {
     d_step {
-        ATTop = ATTop + 1;
-        assert(ATTop < NBALL);
-        ATStack[ATTop] = AT;
-        AT = proc
+        if
+        :: !get_bit(proc, ghost_direct_AT) ->
+            ATTop = ATTop + 1;
+            assert(ATTop < NBALL);
+            ATStack[ATTop] = AT;
+            AT = proc
+        :: else ->
+            /* late arrival
+             * current process AT is changed by change_AT_directly and been
+             * preempt by higher priority exception, however, AT has not
+             * process the ITake to clear the ghost bit. Thus, can not push
+             * to the ATStack. */
+            AT = proc
+        fi
     }
 }
 
@@ -69,6 +81,7 @@ inline pop_ATStack_to_AT()
     }
 }
 
+/* check if proc is active or not */
 inline inATStack(proc, ret)
 {
     d_step {
@@ -84,26 +97,32 @@ inline inATStack(proc, ret)
     }
 }
 
+/* return true if preemption can preempt the running task, and
+ * false otherwise. */
 inline interrupt_policy(preempt, running, ret)
 {
     d_step {
         if
         :: preempt == running ->
+            /* XXX
+             * The limitation of this model is that, the irq is triggered by
+             * the running of process. The irq will not trigger again while
+             * the related interrupt process are running. */
             assert(get_bit(preempt, ghost_direct_AT) || preempt == PendSV);
             /* the preemption can not be self */
             ret = false
         :: running >= USER0 ->
-            /* the exception always takes while user task is running */
-            /* and there remain nothing in ATStack */
+            /* the exception always takes while user task is running
+             * and there remain nothing in ATStack */
             assert(ATTop <= 0 && preempt != SVC);
-            /* if PendSV preempt user task, setting the pending bit of PendSV */
-            /* has no side-effect */
+            /* if PendSV preempt user task, setting the pending bit of PendSV
+             * has no side-effect */
             set_pending(preempt);
             ret = true
         :: else ->
             assert(running < USER0);
-            /* nested interrupt */
-            /* compare the priority of pending and preemtive exception */
+            /* nested interrupt
+             * compare the priority of pending and preemtive exception */
             set_pending(preempt);
             get_max_pending(max_prio);
             if
@@ -120,7 +139,6 @@ inline ITake(proc)
 {
     do
     :: atomic {
-        /* check if proc is active or not */
         inATStack(proc, retInATStack);
         interrupt_policy(proc, AT, retPolicy);
         if
@@ -129,6 +147,7 @@ inline ITake(proc)
             push_and_change_AT(proc);
             break
         :: !retInATStack && get_bit(proc, ghost_direct_AT) ->
+            /* change AT directly from IRet, similar to tail-chaining */
             clear_bit(proc, ghost_direct_AT);
             clear_pending(proc);
             break
@@ -249,7 +268,6 @@ endPendSV:
     goto endPendSV
 }
 
-/* irq will not always trigger while interrupts process is running*/
 active [NBINTS] proctype interrupts()
 {
     int idx, max_prio;

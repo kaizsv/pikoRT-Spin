@@ -12,14 +12,12 @@ typedef bitmap_struct {
     byte queue[NBITMAP_BIT * NB_WAIT_TASKS] = UNKNOWN
 };
 
-/*
- * _bm[0] is active queue, denote as _bm[SCHED_BITMAP_ACTIVE].
+/* _bm[0] is active queue, denote as _bm[SCHED_BITMAP_ACTIVE].
  * _bm[1] is expire queue, denote as _bm[SCHED_BITMAP_EXPIRE].
  *
  * If the `sched.is_swap` is been set to 1, the active and expire queue
  * will be exchanged through the macro SCHED_BITMAP_ACTIVE and
- * SCHED_BITMAP_EXPIRE.
- */
+ * SCHED_BITMAP_EXPIRE. */
 typedef sched_struct {
     bitmap_struct _bm[2];
     bit is_swap
@@ -71,10 +69,8 @@ inline sched_bitmap_enqueue(new, prio, tid)
     AWAITS(tid, set_bit(prio, sched._bm[SCHED_BITMAP_ACTIVE].map))
 }
 
-/* XXX
- * del_queue will remove the task from runqueue and move the slots behind
- * the task forward to act as the delection in link list
- */
+/* XXX: del_queue will remove the task from runqueue and move the slots
+ * behind the task forward to act as the delection in link list. */
 inline del_queue(del, prio, bm)
 {
     d_step {
@@ -135,8 +131,8 @@ inline sched_bitmap_elect(flags, tid)
 {
     find_next_thread(sched._bm[SCHED_BITMAP_ACTIVE], nextUser, tid);
 
-    /* check each thrd timeslice in active queue */
-    /* if necessary swap active and expire queue */
+    /* check each thrd timeslice in active queue
+     * if necessary swap active and expire queue */
     find_next_thread(sched._bm[SCHED_BITMAP_EXPIRE], tempUser, tid);
     if
     :: (nextUser == IDLE_THREAD && tempUser != IDLE_THREAD) ->
@@ -156,8 +152,9 @@ inline sched_bitmap_elect(flags, tid)
 
     /* context switch */
     if
+//    TODO: thread exit has not been implemented yet,
+//          comment to prevent unreach statement
 //    :: flags == SCHED_OPT_RESTORE_ONLY ->
-//        TODO: thread exit has not been implemented yet.
 //        /* restore only */
 //        AWAITS(tid, curUser = nextUser);
 //        AWAITS(tid, thread_restore(curUser))

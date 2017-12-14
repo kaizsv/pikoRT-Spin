@@ -51,8 +51,14 @@ inline tasklet_action(tid)
             bitmap_queue_del(next_task_func, max_prio, prio_tasklet, tid);
 
             /* XXX:
-             * if there are more than 1 buttom helf exception
-             * use condition instruction rather than assert.
+             * To prevent the unreached statement, using assert rather than
+             * condition instruction. If more than one buttom helf functions
+             * are used need to re-write with condition
+             *
+             * if
+             * :: next_task_func == BH_XXX ->
+             * :: else ->
+             * fi
              */
             /* the elected tasketlet must be systick buttom half */
             AWAITS(tid, assert(next_task_func == BH_SYSTICK));

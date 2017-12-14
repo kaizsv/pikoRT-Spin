@@ -6,16 +6,18 @@
 
 #define NBMUTEX NBALL
 
+/* -1: unlocked, 0: locked, poritive: locked, possible waiters */
 int mutex;
 
 /* local monitor for r0 */
 bit local_monitor;
-byte mutex_head[NBMUTEX];//TODO: can be smaller
+byte mutex_head[NBMUTEX];
 int mutex_top;
 
 inline mutex_add_tail(proc)
 {
     mutex_top = mutex_top + 1;
+    /* increase NBMUTEX if fail */
     assert(mutex_top < NBMUTEX);
     mutex_head[mutex_top] = proc
 }
