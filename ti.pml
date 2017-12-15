@@ -75,7 +75,7 @@ inline thread_info_initialize()
     idx2 = 0;
 
     ti[SOFTIRQ - USER0].ti_priority = PRI_MAX;
-    ti[SOFTIRQ - USER0].ti_state = THREAD_STATE_NEW;
+    ti[SOFTIRQ - USER0].ti_state = THREAD_STATE_NEW
 }
 
 #endif /* _THREAD_INFO_ */

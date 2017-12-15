@@ -15,17 +15,6 @@
 
 bitmap_struct prio_tasklet;
 
-inline raise_softirq(tid)
-{
-    if
-    :: !ghost_softirq ->
-        sched_enqueue(SOFTIRQ, tid);
-        AWAITS(tid, ghost_softirq = 1)
-    :: else ->
-        AWAITS(tid, skip)
-    fi
-}
-
 inline tasklet_bitmap_enqueue(new, prio, tid)
 {
     AWAITS(tid, add_queue_tail(new, prio, prio_tasklet));
@@ -36,7 +25,15 @@ inline tasklet_schedule(task, prio, tid)
 {
     AWAITS(tid, assert(task != NO_BH_TASK || prio <= PRIO_TASKLET_MINPRIO));
     tasklet_bitmap_enqueue(task, prio, tid);
-    raise_softirq(tid)
+
+    /* raise softirq */
+    if
+    :: !ghost_softirq ->
+        sched_enqueue(SOFTIRQ, tid);
+        AWAITS(tid, ghost_softirq = 1)
+    :: else ->
+        AWAITS(tid, skip)
+    fi
 }
 
 inline tasklet_action(tid)
