@@ -51,6 +51,8 @@ inline find_next_thread(bm, ret, tid)
 inline add_queue_tail(new, prio, bm)
 {
     d_step {
+    /* increase BITMAP_BITS if fails */
+    assert(prio < NBITMAP_BIT);
     for (idx: 0 .. (NB_WAIT_TASKS - 1)) {
         if
         :: bm.queue[prio * NB_WAIT_TASKS + idx] == UNKNOWN ->

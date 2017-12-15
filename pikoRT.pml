@@ -46,7 +46,7 @@ inline get_max_pending(ret)
 inline change_AT_directly(proc)
 {
     assert(PendSV < proc && proc < USER0);
-    assert(ghost_direct_AT < (1 << proc));
+    assert(ghost_direct_AT <= (1 << proc));
     set_bit(proc, ghost_direct_AT);
     AT = proc
 }
@@ -55,7 +55,7 @@ inline push_and_change_AT(proc)
 {
     d_step {
         if
-        :: !get_bit(proc, ghost_direct_AT) ->
+        :: !get_bit(AT, ghost_direct_AT) ->
             ATTop = ATTop + 1;
             assert(ATTop < NBALL);
             ATStack[ATTop] = AT;
@@ -120,13 +120,13 @@ inline interrupt_policy(preempt, running, ret)
             set_pending(preempt);
             ret = true
         :: else ->
-            assert(running < USER0);
-            /* nested interrupt
+            /* nested interrupt: running < USER0
              * compare the priority of pending and preemtive exception */
             set_pending(preempt);
             get_max_pending(max_prio);
             if
             :: irq_prio[max_prio] < irq_prio[running] && preempt == max_prio ->
+                assert(!get_bit(preempt, ghost_direct_AT));
                 ret = true
             :: else ->
                 ret = false
