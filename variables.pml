@@ -51,7 +51,6 @@ pid curUser;
 pid ctxt_ATStack[(NBUSERS + 1) * NBCTXT];
 //int ctxt_ATTop[NBUSERS + 1];
 
-bit ghost_softirq;
 int ghost_direct_AT;
 bit ghost_svc;
 

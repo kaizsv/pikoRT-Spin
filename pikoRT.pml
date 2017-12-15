@@ -271,7 +271,7 @@ endPendSV:
 active [NBINTS] proctype interrupts()
 {
     int idx, max_prio;
-    bool retInATStack, retPolicy;
+    bool retInATStack, retPolicy, ghost_softirq;
     assert(PendSV < _pid && _pid < USER0);
     (all_process_prepare_to_run);
 endInts:
@@ -296,12 +296,14 @@ endInts:
 /* users are in non-privileged mode */
 active [NBUSERS] proctype users()
 {
-    int idx;
+    /* local monitor for r0 in mutex.pml */
+    bit local_monitor;
     assert(USER0 <= _pid && _pid < SOFTIRQ);
     (all_process_prepare_to_run);
 endUsers:
     if
     :: _pid == USER0 ->
+        /* mutex initials at mutex_initialize */
         mutex_lock(mutex, _pid);
         mutex_unlock(mutex, _pid)
     :: else ->
@@ -316,7 +318,7 @@ active proctype softirq()
 {
     int idx, max_prio;
     bool del_queue_check;
-    pid tempUser;
+    byte next_task_func = NO_BH_TASK;
     assert(_pid == SOFTIRQ);
     (all_process_prepare_to_run);
 endSoftirq:

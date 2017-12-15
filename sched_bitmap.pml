@@ -39,6 +39,7 @@ inline find_next_thread(bm, ret, tid)
 
     if
     :: max_prio == NBITMAP_BIT ->
+        /* empty bm.map */
         AWAITS(tid, ret = IDLE_THREAD)
     :: else ->
         AWAITS(tid, bitmap_first_entry(bm, max_prio, ret))
@@ -77,7 +78,7 @@ inline del_queue(del, prio, bm)
     for (idx: 0 .. (NB_WAIT_TASKS - 1)) {
         if
         :: (bm.queue[prio * NB_WAIT_TASKS + idx] == del) && !del_queue_check ->
-            del_queue_check = true;
+            del_queue_check = true
         :: else ->
             if
             :: del_queue_check ->

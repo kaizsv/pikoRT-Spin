@@ -9,8 +9,6 @@
 /* -1: unlocked, 0: locked, poritive: locked, possible waiters */
 int mutex;
 
-/* local monitor for r0 */
-bit local_monitor;
 byte mutex_head[NBMUTEX];
 int mutex_top;
 

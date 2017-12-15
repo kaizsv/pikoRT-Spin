@@ -12,7 +12,6 @@
 
 #define NO_BH_TASK 0
 #define BH_SYSTICK 1
-byte next_task_func = NO_BH_TASK;
 
 bitmap_struct prio_tasklet;
 
@@ -56,7 +55,8 @@ inline tasklet_action(tid)
              * are used need to re-write with condition
              *
              * if
-             * :: next_task_func == BH_XXX ->
+             * :: next_task_func == BH_XXX -> XXX_bh()
+             * :: ...
              * :: else ->
              * fi
              */
@@ -64,7 +64,8 @@ inline tasklet_action(tid)
             AWAITS(tid, assert(next_task_func == BH_SYSTICK));
             systick_bh(tid);
         :: else ->
-            AWAITS(tid, next_task_func = NO_BH_TASK; break);
+            AWAITS(tid, next_task_func = NO_BH_TASK);
+            AWAITS(tid, break)
         fi
     od
 }
