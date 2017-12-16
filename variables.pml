@@ -56,9 +56,11 @@ bit ghost_svc;
 
 inline sys_call(__svc_type)
 {
-    assert(USER0 <= curUser && curUser <= SOFTIRQ);
-    assert(ATTop < 0 && irq_pending == 0 && ghost_direct_AT == 0);
-    svc_type = __svc_type;
+    d_step {
+        assert(USER0 <= curUser && curUser <= SOFTIRQ);
+        assert(ATTop < 0 && irq_pending == 0 && ghost_direct_AT == 0);
+        svc_type = __svc_type;
+    };
     push_and_change_AT(SVC)
 }
 

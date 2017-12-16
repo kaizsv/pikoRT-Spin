@@ -30,7 +30,9 @@ sched_struct sched;
 
 inline bitmap_first_entry(bm, p, ret)
 {
-    ret = bm.queue[p * NB_WAIT_TASKS + 0]
+    d_step {
+        ret = bm.queue[p * NB_WAIT_TASKS + 0]
+    }
 }
 
 inline find_next_thread(bm, ret, tid)

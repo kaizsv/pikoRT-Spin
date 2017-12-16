@@ -15,8 +15,10 @@ inline set_pending(irq)
 
 inline clear_pending(irq)
 {
-    assert(1 <= irq && irq < USER0);
-    clear_bit(irq, irq_pending)
+    d_step {
+        assert(1 <= irq && irq < USER0);
+        clear_bit(irq, irq_pending)
+    }
 }
 
 /* return maxima priority exception from exception pending status
@@ -45,10 +47,12 @@ inline get_max_pending(ret)
 /* similar to tail-chaining */
 inline change_AT_directly(proc)
 {
-    assert(PendSV < proc && proc < USER0);
-    assert(ghost_direct_AT <= (1 << proc));
-    set_bit(proc, ghost_direct_AT);
-    AT = proc
+    d_step {
+        assert(PendSV < proc && proc < USER0);
+        assert(ghost_direct_AT <= (1 << proc));
+        set_bit(proc, ghost_direct_AT);
+        AT = proc
+    }
 }
 
 inline push_and_change_AT(proc)
