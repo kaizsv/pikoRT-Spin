@@ -1,6 +1,6 @@
 SPIN = spin
 CC = gcc
-CFLAGS = -w -O0
+CFLAGS = -w -O2
 SPINFLAGS = -DXUSAFE -DCOLLAPSE
 
 TARGET = pikoRT.pml

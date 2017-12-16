@@ -342,9 +342,9 @@ init
 
     d_step {
         system_initialize();
+        thread_info_initialize();
         mutex_initialize()
     };
-    thread_info_initialize();
     all_process_prepare_to_run = 1;
 
 endPendSV:
