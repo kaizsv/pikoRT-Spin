@@ -204,7 +204,7 @@ inline IRet()
 
 active proctype svc()
 {
-    int idx, max_prio;
+    byte idx, max_prio;
     bool retInATStack, retPolicy, del_queue_check;
     pid tempUser;
     assert(_pid == SVC);
@@ -256,7 +256,7 @@ endSVC:
 
 active proctype pendsv()
 {
-    int idx, max_prio;
+    byte idx, max_prio;
     bool retInATStack, retPolicy, del_queue_check;
     pid tempUser;
     assert(_pid == PendSV);
@@ -270,7 +270,7 @@ endPendSV:
 
 active [NBINTS] proctype interrupts()
 {
-    int idx, max_prio;
+    byte idx, max_prio;
     bool retInATStack, retPolicy, ghost_softirq;
     assert(PendSV < _pid && _pid < USER0);
     (all_process_prepare_to_run);
@@ -316,7 +316,7 @@ endUsers:
 /* softirq is in non-privileged mode */
 active proctype softirq()
 {
-    int idx, max_prio;
+    byte idx, max_prio;
     bool del_queue_check;
     byte next_task_func = NO_BH_TASK;
     assert(_pid == SOFTIRQ);
@@ -333,7 +333,7 @@ endSoftirq:
 
 init
 {
-    int idx, idx2, max_prio;
+    byte idx, idx2, max_prio;
     bool retInATStack, retPolicy;
 
     d_step {

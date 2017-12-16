@@ -57,7 +57,6 @@ inline add_queue_tail(new, prio, bm)
         if
         :: bm.queue[prio * NB_WAIT_TASKS + idx] == new ->
             assert(bm.map == prio_tasklet.map);
-            assert(bm.map != sched._bm[0].map && bm.map != sched._bm[1].map);
             break
         :: bm.queue[prio * NB_WAIT_TASKS + idx] == UNKNOWN ->
             bm.queue[prio * NB_WAIT_TASKS + idx] = new;
