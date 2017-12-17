@@ -27,9 +27,9 @@
 #include "sched.pml"
 
 typedef thread_info {
-    int ti_priority;
-    int ti_state;
-    int ti_private;
+    byte ti_priority;
+    byte ti_state;
+    byte ti_private;
 };
 
 /* ACTIVED: 0
