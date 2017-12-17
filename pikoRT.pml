@@ -308,9 +308,11 @@ endUsers:
     :: _pid == USER0 ->
         /* mutex initials at mutex_initialize */
         mutex_lock(mutex, _pid);
+        AWAITS(_pid, sys_call(SYS_PTHREAD_YIELD));
         mutex_unlock(mutex, _pid)
     :: else ->
-        AWAITS(_pid, skip)
+        mutex_lock(mutex, _pid);
+        mutex_unlock(mutex, _pid)
     fi;
 
     goto endUsers
