@@ -36,22 +36,22 @@
 #ifndef _VARIABLES_
 #define _VARIABLES_
 
-mtype = { DEFAULT_SYS, SYS_MUTEX_LOCK, SYS_MUTEX_UNLOCK, SYS_PTHREAD_YIELD};
+mtype = { DEFAULT_SYS, SYS_MUTEX_LOCK, SYS_MUTEX_UNLOCK, SYS_PTHREAD_YIELD };
 mtype svc_type = DEFAULT_SYS;
 
-int irq_pending;
+short irq_pending;
 byte irq_prio[NBINTS + 2];
 bit PendSVReq;
 pid AT;
 pid ATStack[NBALL];
-int ATTop;
+short ATTop;
 pid nextUser;
 pid curUser;
 
 pid ctxt_ATStack[(NBUSERS + 1) * NBCTXT];
 //int ctxt_ATTop[NBUSERS + 1];
 
-int ghost_direct_AT;
+short ghost_direct_AT;
 //bit ghost_svc;
 
 inline sys_call(__svc_type)

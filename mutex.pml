@@ -7,12 +7,12 @@
 #define NBMUTEX NBALL
 
 /* -1: unlocked, 0: locked, poritive: locked, possible waiters */
-int mutex;
+short mutex;
 
 /* local monitor for r0 in mutex.pml */
 bit local_monitor;
 byte mutex_head[NBMUTEX];
-int mutex_top;
+short mutex_top;
 
 inline mutex_add_tail(proc)
 {

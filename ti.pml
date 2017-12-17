@@ -25,6 +25,9 @@
 #include "variables.pml"
 #include "sched.pml"
 
+/* TODO: ti_private has been used to store mutex address in Piko/RT,
+ * but the modification of mutex is globally. To reduce the model size
+ * regardless the usage of ti_private. */
 typedef thread_info {
     byte ti_priority;
     byte ti_state
@@ -33,7 +36,7 @@ typedef thread_info {
 /* ACTIVED: 0
  * EXPIRED: 1
  */
-int THREAD_SCHED_STATE[2];
+byte THREAD_SCHED_STATE[2];
 thread_info ti[NBUSERS + 1];
 
 inline swap_sched_state_map()
