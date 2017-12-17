@@ -28,13 +28,6 @@ sched_struct sched;
 #define SCHED_BITMAP_ACTIVE (0 | sched.is_swap)
 #define SCHED_BITMAP_EXPIRE (1 ^ sched.is_swap)
 
-inline bitmap_first_entry(bm, p, ret)
-{
-    d_step {
-        ret = bm.queue[p * NB_WAIT_TASKS + 0]
-    }
-}
-
 inline find_next_thread(bm, ret, tid)
 {
     AWAITS(tid, find_first_bit(bm.map, max_prio, PRI_MIN));
@@ -44,7 +37,8 @@ inline find_next_thread(bm, ret, tid)
         /* empty bm.map */
         AWAITS(tid, ret = IDLE_THREAD)
     :: else ->
-        AWAITS(tid, bitmap_first_entry(bm, max_prio, ret))
+        /* bitmap_first_entry() */
+        AWAITS(tid, ret = bm.queue[max_prio * NB_WAIT_TASKS + 0])
     fi;
     AWAITS(tid, assert(ret != UNKNOWN))
 }
@@ -91,7 +85,7 @@ inline del_queue(del, prio, bm)
             :: del_queue_check ->
                 /* del_queue_check */
                 bm.queue[prio * NB_WAIT_TASKS + idx - 1] =
-                    bm.queue[prio * NB_WAIT_TASKS + idx]
+                    bm.queue[prio * NB_WAIT_TASKS + idx];
                 if
                 :: idx == (NB_WAIT_TASKS - 1) ->
                     bm.queue[prio * NB_WAIT_TASKS + idx] = UNKNOWN
@@ -131,8 +125,10 @@ inline sched_bitmap_dequeue(dequeue, prio, bm, tid)
 
 inline swap_sched_state()
 {
-    sched.is_swap = sched.is_swap ^ 1;
-    swap_sched_state_map()
+    d_step {
+        sched.is_swap = sched.is_swap ^ 1;
+        swap_sched_state_map()
+    }
 }
 
 inline sched_bitmap_elect(flags, tid)
@@ -161,7 +157,7 @@ inline sched_bitmap_elect(flags, tid)
     /* context switch */
     if
 //    TODO: thread exit has not been implemented yet,
-//          comment to prevent unreach statement
+//          comment to prevent unreached statement
 //    :: flags == SCHED_OPT_RESTORE_ONLY ->
 //        /* restore only */
 //        AWAITS(tid, curUser = nextUser);

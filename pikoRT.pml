@@ -214,7 +214,6 @@ active proctype svc()
     assert(_pid == SVC);
     (all_process_prepare_to_run);
 endSVC:
-    AWAITS(_pid, ghost_svc = 1);
     AWAITS(_pid, assert(svc_type != DEFAULT_SYS));
     if
     :: svc_type == SYS_MUTEX_LOCK ->
@@ -234,7 +233,7 @@ endSVC:
         if
         :: mutex >= 0 ->
             AWAITS(_pid, find_first_blocking_task_and_del(max_prio));
-            /* XXX: mutex_del(max_prio) */
+            // XXX: mutex_del(max_prio)
             sched_enqueue(max_prio, _pid)
         :: else ->
             AWAITS(_pid, skip)
@@ -253,7 +252,7 @@ endSVC:
         sched_elect(SCHED_OPT_NONE, _pid)
     fi;
     AWAITS(_pid, svc_type = DEFAULT_SYS);
-    AWAITS(_pid, ghost_svc = 0; IRet());
+    AWAITS(_pid, IRet());
 
     goto endSVC
 }
@@ -320,15 +319,14 @@ endUsers:
 /* softirq is in non-privileged mode */
 active proctype softirq()
 {
-    byte idx, max_prio;
+    byte idx, max_prio, next_tasklet = NO_BH_TASK;
     bool del_queue_check;
-    byte next_task_func = NO_BH_TASK;
     assert(_pid == SOFTIRQ);
     (all_process_prepare_to_run);
 endSoftirq:
     tasklet_action(_pid);
     /* softirqd thread should not return */
-    AWAITS(_pid, assert(next_task_func == NO_BH_TASK));
+    AWAITS(_pid, assert(next_tasklet == NO_BH_TASK));
     /* sched yield */
     AWAITS(_pid, sys_call(SYS_PTHREAD_YIELD));
 

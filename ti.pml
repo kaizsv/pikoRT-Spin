@@ -40,18 +40,16 @@ thread_info ti[NBUSERS + 1];
 
 inline swap_sched_state_map()
 {
-    d_step {
-        if
-        :: THREAD_SCHED_STATE[0] == THREAD_STATE_READY1 ->
-            assert(THREAD_SCHED_STATE[1] == THREAD_STATE_READY2);
-            THREAD_SCHED_STATE[0] = THREAD_STATE_READY2;
-            THREAD_SCHED_STATE[1] = THREAD_STATE_READY1
-        :: THREAD_SCHED_STATE[0] == THREAD_STATE_READY2 ->
-            assert(THREAD_SCHED_STATE[1] == THREAD_STATE_READY1);
-            THREAD_SCHED_STATE[0] = THREAD_STATE_READY1;
-            THREAD_SCHED_STATE[1] = THREAD_STATE_READY2
-        fi
-    }
+    if
+    :: THREAD_SCHED_STATE[0] == THREAD_STATE_READY1 ->
+        assert(THREAD_SCHED_STATE[1] == THREAD_STATE_READY2);
+        THREAD_SCHED_STATE[0] = THREAD_STATE_READY2;
+        THREAD_SCHED_STATE[1] = THREAD_STATE_READY1
+    :: THREAD_SCHED_STATE[0] == THREAD_STATE_READY2 ->
+        assert(THREAD_SCHED_STATE[1] == THREAD_STATE_READY1);
+        THREAD_SCHED_STATE[0] = THREAD_STATE_READY1;
+        THREAD_SCHED_STATE[1] = THREAD_STATE_READY2
+    fi
 }
 
 inline thread_info_initialize()

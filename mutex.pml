@@ -32,11 +32,11 @@ inline find_first_blocking_task_and_del(ret)
     for (idx: 0 .. mutex_top) {
         if
         :: (get_ti_private(mutex_head[idx]) == mutex) && (ret == UNKNOWN) ->
-            ret = mutex_head[idx];
+            ret = mutex_head[idx]
         :: else ->
             if
             :: ret != UNKNOWN ->
-                mutex_head[idx - 1] = mutex_head[idx]
+                mutex_head[idx - 1] = mutex_head[idx];
                 if
                 :: idx == mutex_top ->
                     mutex_head[idx] = UNKNOWN
@@ -47,7 +47,7 @@ inline find_first_blocking_task_and_del(ret)
         fi
     }
     idx = 0;
-    assert(ret != UNKNOWN && mutex_top >= 0);
+    assert(ret != UNKNOWN);
     mutex_top = mutex_top - 1
     }
 }
@@ -71,8 +71,8 @@ lock_0:
         :: else ->
             /* bne 0b */
             goto lock_0
-        fi;
-    fi;
+        fi
+    fi
 
     /* no need to move #0 to r0 */
 }
@@ -87,7 +87,7 @@ unlock_0:
     :: __mutex != 0 ->
         /* bne 1f */
         /* svc to #SYS_PTHREAD_MUTEX_UNLOCK */
-        AWAITS(tid, sys_call(SYS_MUTEX_UNLOCK));
+        AWAITS(tid, sys_call(SYS_MUTEX_UNLOCK))
     :: else ->
         /* strex r1, r2, [r0] */
         if
@@ -96,8 +96,8 @@ unlock_0:
         :: else ->
             /* bne 0b */
             goto unlock_0
-        fi;
-    fi;
+        fi
+    fi
 
     /* no need to move #0 to r0 */
 }

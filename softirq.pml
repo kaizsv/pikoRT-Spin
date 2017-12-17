@@ -23,6 +23,7 @@ inline tasklet_bitmap_enqueue(new, prio, tid)
 
 inline tasklet_schedule(task, prio, tid)
 {
+    /* if the assert fails, use condition statement to skip the false */
     AWAITS(tid, assert(task != NO_BH_TASK || prio <= PRIO_TASKLET_MINPRIO));
     tasklet_bitmap_enqueue(task, prio, tid);
 
@@ -43,8 +44,9 @@ inline tasklet_action(tid)
         if
         :: prio_tasklet.map != 0 ->
             AWAITS(tid, find_first_bit(prio_tasklet.map, max_prio, PRI_MIN));
-            AWAITS(tid, bitmap_first_entry(prio_tasklet, max_prio, next_task_func));
-            bitmap_queue_del(next_task_func, max_prio, prio_tasklet, tid);
+            /* bitmap_first_entry() */
+            AWAITS(tid, next_tasklet = prio_tasklet.queue[max_prio * NB_WAIT_TASKS + 0]);
+            bitmap_queue_del(next_tasklet, max_prio, prio_tasklet, tid);
 
             /* XXX:
              * To prevent the unreached statement, using assert rather than
@@ -52,16 +54,16 @@ inline tasklet_action(tid)
              * are used need to re-write with condition
              *
              * if
-             * :: next_task_func == BH_XXX -> XXX_bh()
+             * :: next_tasklet == BH_XXX -> XXX_bh()
              * :: ...
              * :: else ->
              * fi
              */
             /* the elected tasketlet must be systick buttom half */
-            AWAITS(tid, assert(next_task_func == BH_SYSTICK));
-            systick_bh(tid);
+            AWAITS(tid, assert(next_tasklet == BH_SYSTICK));
+            systick_bh(tid)
         :: else ->
-            AWAITS(tid, next_task_func = NO_BH_TASK);
+            AWAITS(tid, next_tasklet = NO_BH_TASK);
             AWAITS(tid, break)
         fi
     od

@@ -52,7 +52,7 @@ pid ctxt_ATStack[(NBUSERS + 1) * NBCTXT];
 //int ctxt_ATTop[NBUSERS + 1];
 
 int ghost_direct_AT;
-bit ghost_svc;
+//bit ghost_svc;
 
 inline sys_call(__svc_type)
 {
@@ -60,8 +60,13 @@ inline sys_call(__svc_type)
         assert(USER0 <= curUser && curUser <= SOFTIRQ);
         assert(ATTop < 0 && irq_pending == 0 && ghost_direct_AT == 0);
         svc_type = __svc_type;
-    };
-    push_and_change_AT(SVC)
+
+        /* push_and_change_AT(SVC) is placed in pikoRT.pml, write directly */
+        ATTop = ATTop + 1;
+        assert(ATTop < NBALL);
+        ATStack[ATTop] = AT;
+        AT = SVC
+    }
 }
 
 inline switch_to(proc)
