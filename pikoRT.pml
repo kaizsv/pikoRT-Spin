@@ -217,7 +217,7 @@ endSVC:
     AWAITS(_pid, assert(svc_type != DEFAULT_SYS));
     if
     :: svc_type == SYS_MUTEX_LOCK ->
-        AWAITS(_pid, mutex = mutex + 1);
+        AWAITS(_pid, add_mutex(mutex));
         if
         :: mutex != 0 ->
             AWAITS(_pid, ti[curUser - USER0].ti_private = mutex);
@@ -229,7 +229,7 @@ endSVC:
         fi
     :: svc_type == SYS_MUTEX_UNLOCK ->
         AWAITS(_pid, max_prio = UNKNOWN);
-        AWAITS(_pid, mutex = mutex - 1);
+        AWAITS(_pid, minus_mutex(mutex));
         if
         :: mutex >= 0 ->
             AWAITS(_pid, find_first_blocking_task_and_del(max_prio));
@@ -299,8 +299,6 @@ endInts:
 /* users are in non-privileged mode */
 active [NBUSERS] proctype users()
 {
-    /* local monitor for r0 in mutex.pml */
-    bit local_monitor;
     assert(USER0 <= _pid && _pid < SOFTIRQ);
     (all_process_prepare_to_run);
 endUsers:

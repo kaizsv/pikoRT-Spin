@@ -9,8 +9,41 @@
 /* -1: unlocked, 0: locked, poritive: locked, possible waiters */
 int mutex;
 
+/* local monitor for r0 in mutex.pml */
+bit local_monitor;
 byte mutex_head[NBMUTEX];
 int mutex_top;
+
+/* simulate as mutex pointer */
+inline add_mutex(__mutex)
+{
+    d_step {
+        __mutex = __mutex + 1;
+        if
+        :: mutex_top >= 0 ->
+            for (idx: 0 .. mutex_top) {
+                ti[mutex_head[idx] - USER0].ti_private = __mutex
+            }
+            idx = 0
+        :: else -> skip
+        fi
+    }
+}
+
+inline minus_mutex(__mutex)
+{
+    d_step {
+        __mutex = __mutex - 1;
+        if
+        :: mutex_top >= 0 ->
+            for (idx: 0 .. mutex_top) {
+                ti[mutex_head[idx] - USER0].ti_private = __mutex
+            }
+            idx = 0
+        :: else -> skip
+        fi
+    }
+}
 
 inline mutex_add_tail(proc)
 {
