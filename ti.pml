@@ -14,7 +14,6 @@
 
 #define get_ti_prio(proc) ti[proc - USER0].ti_priority
 #define get_ti_state(proc) ti[proc - USER0].ti_state
-#define get_ti_private(proc) ti[proc - USER0].ti_private
 
 /*
  * Local define
@@ -28,8 +27,7 @@
 
 typedef thread_info {
     byte ti_priority;
-    byte ti_state;
-    byte ti_private;
+    byte ti_state
 };
 
 /* ACTIVED: 0

@@ -217,10 +217,10 @@ endSVC:
     AWAITS(_pid, assert(svc_type != DEFAULT_SYS));
     if
     :: svc_type == SYS_MUTEX_LOCK ->
-        AWAITS(_pid, add_mutex(mutex));
+        AWAITS(_pid, mutex = mutex + 1);
         if
         :: mutex != 0 ->
-            AWAITS(_pid, ti[curUser - USER0].ti_private = mutex);
+            //AWAITS(_pid, ti[curUser - USER0].ti_private = mutex);
             AWAITS(_pid, ti[curUser - USER0].ti_state = THREAD_STATE_BLOCKED);
             AWAITS(_pid, mutex_add_tail(curUser));
             sched_elect(SCHED_OPT_NONE, _pid)
@@ -229,7 +229,7 @@ endSVC:
         fi
     :: svc_type == SYS_MUTEX_UNLOCK ->
         AWAITS(_pid, max_prio = UNKNOWN);
-        AWAITS(_pid, minus_mutex(mutex));
+        AWAITS(_pid, mutex = mutex - 1);
         if
         :: mutex >= 0 ->
             AWAITS(_pid, find_first_blocking_task_and_del(max_prio));

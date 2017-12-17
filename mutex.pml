@@ -14,37 +14,6 @@ bit local_monitor;
 byte mutex_head[NBMUTEX];
 int mutex_top;
 
-/* simulate as mutex pointer */
-inline add_mutex(__mutex)
-{
-    d_step {
-        __mutex = __mutex + 1;
-        if
-        :: mutex_top >= 0 ->
-            for (idx: 0 .. mutex_top) {
-                ti[mutex_head[idx] - USER0].ti_private = __mutex
-            }
-            idx = 0
-        :: else -> skip
-        fi
-    }
-}
-
-inline minus_mutex(__mutex)
-{
-    d_step {
-        __mutex = __mutex - 1;
-        if
-        :: mutex_top >= 0 ->
-            for (idx: 0 .. mutex_top) {
-                ti[mutex_head[idx] - USER0].ti_private = __mutex
-            }
-            idx = 0
-        :: else -> skip
-        fi
-    }
-}
-
 inline mutex_add_tail(proc)
 {
     d_step {
@@ -64,7 +33,7 @@ inline find_first_blocking_task_and_del(ret)
     assert(mutex_top >= 0 && ret == UNKNOWN);
     for (idx: 0 .. mutex_top) {
         if
-        :: (get_ti_private(mutex_head[idx]) == mutex) && (ret == UNKNOWN) ->
+        :: (mutex_head[idx] != UNKNOWN) && (ret == UNKNOWN) ->
             ret = mutex_head[idx]
         :: else ->
             if
