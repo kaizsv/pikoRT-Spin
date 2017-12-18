@@ -16,12 +16,10 @@ short mutex_top;
 
 inline mutex_add_tail(proc)
 {
-    d_step {
-        mutex_top = mutex_top + 1;
-        /* increase NBMUTEX if fail */
-        assert(mutex_top < NBMUTEX);
-        mutex_head[mutex_top] = proc
-    }
+    mutex_top = mutex_top + 1;
+    /* increase NBMUTEX if fail */
+    assert(mutex_top < NBMUTEX);
+    mutex_head[mutex_top] = proc
 }
 
 /* The inline can typically split into two inlines:
@@ -29,7 +27,6 @@ inline mutex_add_tail(proc)
  */
 inline find_first_blocking_task_and_del(ret)
 {
-    d_step {
     assert(mutex_top >= 0 && ret == UNKNOWN);
     for (idx: 0 .. mutex_top) {
         if
@@ -51,7 +48,6 @@ inline find_first_blocking_task_and_del(ret)
     idx = 0;
     assert(ret != UNKNOWN);
     mutex_top = mutex_top - 1
-    }
 }
 
 inline mutex_lock(__mutex, tid)

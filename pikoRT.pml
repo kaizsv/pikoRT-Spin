@@ -181,23 +181,21 @@ inline PendSVTake()
 
 inline IRet()
 {
-    d_step {
+    if
+    :: irq_pending != 0 ->
+        assert(!get_bit(PendSV, irq_pending));
+        get_max_pending(max_prio);
+        inATStack(max_prio, retInATStack);
+        interrupt_policy(max_prio, ATStack[ATTop], retPolicy);
         if
-        :: irq_pending != 0 ->
-            assert(!get_bit(PendSV, irq_pending));
-            get_max_pending(max_prio);
-            inATStack(max_prio, retInATStack);
-            interrupt_policy(max_prio, ATStack[ATTop], retPolicy);
-            if
-            :: !retInATStack && retPolicy ->
-                change_AT_directly(max_prio)
-            :: else ->
-                pop_ATStack_to_AT()
-            fi
+        :: !retInATStack && retPolicy ->
+            change_AT_directly(max_prio)
         :: else ->
             pop_ATStack_to_AT()
         fi
-    }
+    :: else ->
+        pop_ATStack_to_AT()
+    fi
 }
 
 /* -------------

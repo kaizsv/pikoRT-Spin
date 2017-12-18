@@ -64,7 +64,8 @@ inline tasklet_action(tid)
             systick_bh(tid)
         :: else ->
             AWAITS(tid, next_tasklet = NO_BH_TASK);
-            AWAITS(tid, break)
+            /* AWAITS without d_step for break */
+            atomic { (tid == AT); break }
         fi
     od
 }

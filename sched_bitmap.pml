@@ -46,7 +46,6 @@ inline find_next_thread(bm, ret, tid)
 // XXX: can move out of the sched_bitmap.pml
 inline add_queue_tail(new, prio, bm)
 {
-    d_step {
     /* increase BITMAP_BITS if fails */
     assert(prio < NBITMAP_BIT);
     for (idx: 0 .. (NB_WAIT_TASKS - 1)) {
@@ -62,7 +61,6 @@ inline add_queue_tail(new, prio, bm)
         fi
     }
     idx = 0
-    }
 }
 
 inline sched_bitmap_enqueue(new, prio, tid)
@@ -75,7 +73,6 @@ inline sched_bitmap_enqueue(new, prio, tid)
  * behind the task forward to act as the delection in link list. */
 inline del_queue(del, prio, bm)
 {
-    d_step {
     for (idx: 0 .. (NB_WAIT_TASKS - 1)) {
         if
         :: (bm.queue[prio * NB_WAIT_TASKS + idx] == del) && !del_queue_check ->
@@ -97,7 +94,6 @@ inline del_queue(del, prio, bm)
     }
     idx = 0;
     del_queue_check = false
-    }
 }
 
 inline bitmap_queue_del(del, prio, bm, tid)
@@ -125,10 +121,8 @@ inline sched_bitmap_dequeue(dequeue, prio, bm, tid)
 
 inline swap_sched_state()
 {
-    d_step {
-        sched.is_swap = sched.is_swap ^ 1;
-        swap_sched_state_map()
-    }
+    sched.is_swap = sched.is_swap ^ 1;
+    swap_sched_state_map()
 }
 
 inline sched_bitmap_elect(flags, tid)

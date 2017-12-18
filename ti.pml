@@ -69,7 +69,11 @@ inline thread_info_initialize()
     for (idx2: (USER0 + 1) .. (SOFTIRQ - 1)) {
         ti[idx2 - USER0].ti_priority = PRI_MIN;
         ti[idx2 - USER0].ti_state = THREAD_STATE_NEW;
-        sched_enqueue(idx2, AT)
+
+        /* sched_enqueue(idx2, AT): prevent nested d_step */
+        ti[idx2 - USER0].ti_state = THREAD_STATE_ACTIVED;
+        add_queue_tail(idx2, get_ti_prio(idx2), sched._bm[SCHED_BITMAP_ACTIVE]);
+        set_bit(get_ti_prio(idx2), sched._bm[SCHED_BITMAP_ACTIVE].map)
     }
     idx2 = 0;
 

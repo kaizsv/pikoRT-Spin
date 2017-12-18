@@ -31,7 +31,7 @@
 #define FOR_CTXT_IDX for (idx: 0 .. (NBCTXT - 1))
 #define FOR_ATTOP_IDX for (idx: 0 .. ATTop)
 
-#define AWAITS(pid, C) atomic { (pid == AT); C }
+#define AWAITS(pid, C) atomic { (pid == AT); d_step { C } }
 
 #ifndef _VARIABLES_
 #define _VARIABLES_
@@ -56,45 +56,39 @@ short ghost_direct_AT;
 
 inline sys_call(__svc_type)
 {
-    d_step {
-        assert(USER0 <= curUser && curUser <= SOFTIRQ);
-        assert(ATTop < 0 && irq_pending == 0 && ghost_direct_AT == 0);
-        svc_type = __svc_type;
+    assert(USER0 <= curUser && curUser <= SOFTIRQ);
+    assert(ATTop < 0 && irq_pending == 0 && ghost_direct_AT == 0);
+    svc_type = __svc_type;
 
-        /* push_and_change_AT(SVC) is placed in pikoRT.pml, write directly */
-        ATTop = ATTop + 1;
-        assert(ATTop < NBALL);
-        ATStack[ATTop] = AT;
-        AT = SVC
-    }
+    /* push_and_change_AT(SVC) is placed in pikoRT.pml, write directly */
+    ATTop = ATTop + 1;
+    assert(ATTop < NBALL);
+    ATStack[ATTop] = AT;
+    AT = SVC
 }
 
 inline switch_to(proc)
 {
-    d_step {
-        assert(USER0 <= proc && proc <= SOFTIRQ && ATTop == 0);
-        assert(USER0 <= ATStack[ATTop] && ATStack[ATTop] <= SOFTIRQ);
-        FOR_CTXT_IDX {
-            ctxt_ATStack[(proc - USER0) * NBCTXT + idx] = ATStack[idx]
-        }
-        idx = 0
+    assert(USER0 <= proc && proc <= SOFTIRQ && ATTop == 0);
+    assert(USER0 <= ATStack[ATTop] && ATStack[ATTop] <= SOFTIRQ);
+    FOR_CTXT_IDX {
+        ctxt_ATStack[(proc - USER0) * NBCTXT + idx] = ATStack[idx]
     }
+    idx = 0
 }
 
 inline thread_restore(proc)
 {
-    d_step {
-        assert(USER0 <= proc && proc <= SOFTIRQ);
-        ATTop = 0;
-        FOR_CTXT_IDX {
-            ATStack[idx] = ctxt_ATStack[(proc - USER0) * NBCTXT + idx]
-        }
-        idx = 0;
-        for (idx: 1 .. (NBALL - 1)) {
-            assert(ATStack[idx] == UNKNOWN)
-        }
-        idx = 0
+    assert(USER0 <= proc && proc <= SOFTIRQ);
+    ATTop = 0;
+    FOR_CTXT_IDX {
+        ATStack[idx] = ctxt_ATStack[(proc - USER0) * NBCTXT + idx]
     }
+    idx = 0;
+    for (idx: 1 .. (NBALL - 1)) {
+        assert(ATStack[idx] == UNKNOWN)
+    }
+    idx = 0
 }
 
 inline system_initialize()
