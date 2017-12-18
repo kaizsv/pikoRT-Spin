@@ -9,16 +9,14 @@ bit all_process_prepare_to_run;
 
 inline set_pending(irq)
 {
-    assert(1 <= irq && irq < USER0);
+    assert(PendSV <= irq && irq < USER0);
     set_bit(irq, irq_pending)
 }
 
 inline clear_pending(irq)
 {
-    d_step {
-        assert(1 <= irq && irq < USER0);
-        clear_bit(irq, irq_pending)
-    }
+    assert(PendSV <= irq && irq < USER0);
+    clear_bit(irq, irq_pending)
 }
 
 /* return maxima priority exception from exception pending status
@@ -28,132 +26,126 @@ inline clear_pending(irq)
  */
 inline get_max_pending(ret)
 {
-    d_step {
-        ret = UNKNOWN;
-        /* SVC will not be pending, and pending of PendSV has no effect */
-        for (idx: 1 .. (USER0 - 1)) {
-            if
-            :: get_bit(idx, irq_pending) && (irq_prio[idx] < ret) ->
-                ret = idx
-            :: else -> skip
-            fi
-        }
-        idx = 0;
-        /* always has a max priority exception */
-        assert(ret != UNKNOWN)
+    ret = UNKNOWN;
+    /* SVC will not be pending, and pending of PendSV has no effect */
+    for (idx: 1 .. (USER0 - 1)) {
+        if
+        :: get_bit(idx, irq_pending) && (irq_prio[idx] < ret) ->
+            ret = idx
+        :: else -> skip
+        fi
     }
+    idx = 0;
+    /* always has a max priority exception */
+    assert(ret != UNKNOWN)
 }
 
 /* similar to tail-chaining */
 inline change_AT_directly(proc)
 {
-    d_step {
-        assert(PendSV < proc && proc < USER0);
-        assert(ghost_direct_AT <= (1 << proc));
-        set_bit(proc, ghost_direct_AT);
-        AT = proc
-    }
+    assert(PendSV < proc && proc < USER0);
+    assert(ghost_direct_AT <= (1 << proc));
+    set_bit(proc, ghost_direct_AT);
+    AT = proc
 }
 
 inline push_and_change_AT(proc)
 {
-    d_step {
-        if
-        :: !get_bit(AT, ghost_direct_AT) ->
-            ATTop = ATTop + 1;
-            assert(ATTop < NBALL);
-            ATStack[ATTop] = AT;
-            AT = proc
-        :: else ->
-            /* late arrival
-             * current process AT is changed by change_AT_directly and been
-             * preempt by higher priority exception, however, AT has not
-             * process the ITake to clear the ghost bit. Thus, can not push
-             * to the ATStack. */
-            AT = proc
-        fi
-    }
+    if
+    :: !get_bit(AT, ghost_direct_AT) ->
+        ATTop = ATTop + 1;
+        assert(ATTop < NBALL);
+        ATStack[ATTop] = AT;
+        AT = proc
+    :: else ->
+        /* late arrival
+         * current process AT is changed by change_AT_directly and been
+         * preempt by higher priority exception, however, AT has not
+         * process the ITake to clear the ghost bit. Thus, can not push
+         * to the ATStack. */
+        AT = proc
+    fi
 }
 
 inline pop_ATStack_to_AT()
 {
-    d_step {
-        AT = ATStack[ATTop];
-        ATStack[ATTop] = UNKNOWN;
-        assert(ATTop >= 0);
-        ATTop = ATTop - 1
-    }
+    AT = ATStack[ATTop];
+    ATStack[ATTop] = UNKNOWN;
+    assert(ATTop >= 0);
+    ATTop = ATTop - 1
 }
 
 /* check if proc is active or not */
 inline inATStack(proc, ret)
 {
-    d_step {
-        ret = false;
-        FOR_ATTOP_IDX {
-            if
-            :: ATStack[idx] == proc ->
-                ret = true; break
-            :: else -> skip
-            fi
-        }
-        idx = 0
+    ret = false;
+    FOR_ATTOP_IDX {
+        if
+        :: ATStack[idx] == proc ->
+            ret = true; break
+        :: else -> skip
+        fi
     }
+    idx = 0
 }
 
 /* return true if preemption can preempt the running task, and
  * false otherwise. */
 inline interrupt_policy(preempt, running, ret)
 {
-    d_step {
+    if
+    :: preempt == running ->
+        /* XXX
+         * The limitation of this model is that, the irq is triggered by
+         * the running of process. The irq will not trigger again while
+         * the related interrupt process are running. */
+        assert(get_bit(preempt, ghost_direct_AT) || preempt == PendSV);
+        /* the preemption can not be self */
+        ret = false
+    :: running >= USER0 ->
+        /* the exception always takes while user task is running
+         * and there remain nothing in ATStack */
+        assert(ATTop <= 0 && preempt != SVC);
+        /* if PendSV preempt user task, setting the pending bit of PendSV
+         * has no side-effect */
+        set_pending(preempt);
+        ret = true
+    :: else ->
+        /* nested interrupt: running < USER0
+         * compare the priority of pending and preemtive exception */
+        set_pending(preempt);
+        get_max_pending(max_prio);
         if
-        :: preempt == running ->
-            /* XXX
-             * The limitation of this model is that, the irq is triggered by
-             * the running of process. The irq will not trigger again while
-             * the related interrupt process are running. */
-            assert(get_bit(preempt, ghost_direct_AT) || preempt == PendSV);
-            /* the preemption can not be self */
-            ret = false
-        :: running >= USER0 ->
-            /* the exception always takes while user task is running
-             * and there remain nothing in ATStack */
-            assert(ATTop <= 0 && preempt != SVC);
-            /* if PendSV preempt user task, setting the pending bit of PendSV
-             * has no side-effect */
-            set_pending(preempt);
+        :: irq_prio[max_prio] < irq_prio[running] && preempt == max_prio ->
+            assert(!get_bit(preempt, ghost_direct_AT));
             ret = true
         :: else ->
-            /* nested interrupt: running < USER0
-             * compare the priority of pending and preemtive exception */
-            set_pending(preempt);
-            get_max_pending(max_prio);
-            if
-            :: irq_prio[max_prio] < irq_prio[running] && preempt == max_prio ->
-                assert(!get_bit(preempt, ghost_direct_AT));
-                ret = true
-            :: else ->
-                ret = false
-            fi
+            ret = false
         fi
-    }
+    fi
 }
 
 inline ITake(proc)
 {
     do
     :: atomic {
-        inATStack(proc, retInATStack);
-        interrupt_policy(proc, AT, retPolicy);
+        d_step {
+            inATStack(proc, retInATStack);
+            interrupt_policy(proc, AT, retPolicy)
+        };
         if
         :: !retInATStack && retPolicy ->
-            clear_pending(proc);
-            push_and_change_AT(proc);
+            d_step {
+                clear_pending(proc);
+                push_and_change_AT(proc)
+            };
             break
         :: !retInATStack && get_bit(proc, ghost_direct_AT) ->
             /* change AT directly from IRet, similar to tail-chaining */
-            clear_bit(proc, ghost_direct_AT);
-            clear_pending(proc);
+            d_step {
+                clear_bit(proc, ghost_direct_AT);
+                clear_pending(proc)
+            };
             break
         :: else -> skip
         fi
@@ -165,17 +157,23 @@ inline PendSVTake()
 {
     do
     :: atomic {
-        inATStack(PendSV, retInATStack);
-        interrupt_policy(PendSV, AT, retPolicy);
+        d_step {
+            inATStack(PendSV, retInATStack);
+            interrupt_policy(PendSV, AT, retPolicy)
+        };
         if
         :: PendSVReq && !retInATStack && retPolicy ->
-            clear_pending(PendSV);
-            push_and_change_AT(PendSV);
-            PendSVReq = false;
+            d_step {
+                clear_pending(PendSV);
+                push_and_change_AT(PendSV);
+                PendSVReq = false
+            };
             break
         :: else ->
             /* there is no need to set PendSV pending state */
-            clear_pending(PendSV)
+            d_step {
+                clear_pending(PendSV)
+            }
         fi
        }
     od
@@ -183,21 +181,23 @@ inline PendSVTake()
 
 inline IRet()
 {
-    if
-    :: irq_pending != 0 ->
-        assert(!get_bit(PendSV, irq_pending));
-        get_max_pending(max_prio);
-        inATStack(max_prio, retInATStack);
-        interrupt_policy(max_prio, ATStack[ATTop], retPolicy);
+    d_step {
         if
-        :: !retInATStack && retPolicy ->
-            change_AT_directly(max_prio)
+        :: irq_pending != 0 ->
+            assert(!get_bit(PendSV, irq_pending));
+            get_max_pending(max_prio);
+            inATStack(max_prio, retInATStack);
+            interrupt_policy(max_prio, ATStack[ATTop], retPolicy);
+            if
+            :: !retInATStack && retPolicy ->
+                change_AT_directly(max_prio)
+            :: else ->
+                pop_ATStack_to_AT()
+            fi
         :: else ->
             pop_ATStack_to_AT()
         fi
-    :: else ->
-        pop_ATStack_to_AT()
-    fi
+    }
 }
 
 /* -------------
