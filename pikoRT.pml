@@ -5,8 +5,6 @@
 #include "softirq.pml"
 #include "mutex.pml"
 
-bit all_process_prepare_to_run;
-
 inline set_pending(irq)
 {
     assert(PendSV <= irq && irq < USER0);
@@ -204,129 +202,124 @@ inline IRet()
 //TODO: the user task will not exit in this spin model
 //      there are no thread_exit abstraction.
 
-active proctype svc()
+proctype svc(byte tid)
 {
     byte idx, max_prio;
     bool retInATStack, retPolicy, del_queue_check;
     pid tempUser;
-    assert(_pid == SVC);
-    (all_process_prepare_to_run);
+    assert(tid == SVC);
 endSVC:
-    AWAITS(_pid, assert(svc_type != DEFAULT_SYS));
+    AWAITS(tid, assert(svc_type != DEFAULT_SYS));
     if
     :: svc_type == SYS_MUTEX_LOCK ->
-        AWAITS(_pid, mutex = mutex + 1);
+        AWAITS(tid, mutex = mutex + 1);
         if
         :: mutex != 0 ->
-            //AWAITS(_pid, ti[curUser - USER0].ti_private = mutex);
-            AWAITS(_pid, ti[curUser - USER0].ti_state = THREAD_STATE_BLOCKED);
-            AWAITS(_pid, mutex_add_tail(curUser));
-            sched_elect(SCHED_OPT_NONE, _pid)
+            //AWAITS(tid, ti[curUser - USER0].ti_private = mutex);
+            AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_BLOCKED);
+            AWAITS(tid, mutex_add_tail(curUser));
+            sched_elect(SCHED_OPT_NONE, tid)
         :: else ->
-            AWAITS(_pid, skip)
+            AWAITS(tid, skip)
         fi
     :: svc_type == SYS_MUTEX_UNLOCK ->
-        AWAITS(_pid, max_prio = UNKNOWN);
-        AWAITS(_pid, mutex = mutex - 1);
+        AWAITS(tid, max_prio = UNKNOWN);
+        AWAITS(tid, mutex = mutex - 1);
         if
         :: mutex >= 0 ->
-            AWAITS(_pid, find_first_blocking_task_and_del(max_prio));
+            AWAITS(tid, find_first_blocking_task_and_del(max_prio));
             // XXX: mutex_del(max_prio)
-            sched_enqueue(max_prio, _pid)
+            sched_enqueue(max_prio, tid)
         :: else ->
-            AWAITS(_pid, skip)
+            AWAITS(tid, skip)
         fi;
         if
         :: get_ti_state(curUser) == THREAD_STATE_BLOCKED ->
-            sched_elect(SCHED_OPT_NONE, _pid)
+            sched_elect(SCHED_OPT_NONE, tid)
         :: max_prio != UNKNOWN && get_ti_prio(curUser) <= get_ti_prio(max_prio) ->
-            sched_enqueue(curUser, _pid);
-            sched_elect(SCHED_OPT_NONE, _pid)
+            sched_enqueue(curUser, tid);
+            sched_elect(SCHED_OPT_NONE, tid)
         :: else ->
-            AWAITS(_pid, skip)
+            AWAITS(tid, skip)
         fi
     :: svc_type == SYS_PTHREAD_YIELD ->
-        sched_enqueue(curUser, _pid);
-        sched_elect(SCHED_OPT_NONE, _pid)
+        sched_enqueue(curUser, tid);
+        sched_elect(SCHED_OPT_NONE, tid)
     fi;
-    AWAITS(_pid, svc_type = DEFAULT_SYS);
-    AWAITS(_pid, IRet());
+    AWAITS(tid, svc_type = DEFAULT_SYS);
+    AWAITS(tid, IRet());
 
     goto endSVC
 }
 
-active proctype pendsv()
+proctype pendsv(byte tid)
 {
     byte idx, max_prio;
     bool retInATStack, retPolicy, del_queue_check;
     pid tempUser;
-    assert(_pid == PendSV);
-    (all_process_prepare_to_run);
+    assert(tid == PendSV);
 endPendSV:
-    sched_elect(SCHED_OPT_TICK, _pid);
-    AWAITS(_pid, IRet());
+    sched_elect(SCHED_OPT_TICK, tid);
+    AWAITS(tid, IRet());
 
     goto endPendSV
 }
 
-active [NBINTS] proctype interrupts()
+proctype interrupts(byte tid)
 {
     byte idx, max_prio;
     bool retInATStack, retPolicy, ghost_softirq;
-    assert(PendSV < _pid && _pid < USER0);
-    (all_process_prepare_to_run);
+    assert(PendSV < tid && tid < USER0);
 endInts:
-    ITake(_pid);
+    ITake(tid);
     if
-    :: _pid == 2 ->
+    :: tid == 2 ->
         /* the first interrupt is systick */
         /* TODO: future work for timer */
-        tasklet_schedule(BH_SYSTICK, TIMER_SOFTIRQ_PRIO, _pid);
-        AWAITS(_pid, PendSVReq = 1)
+        tasklet_schedule(BH_SYSTICK, TIMER_SOFTIRQ_PRIO, tid);
+        AWAITS(tid, PendSVReq = 1)
     :: else ->
         /* using stm32_uartx_isr() as interrupt example */
         /* this isr will not influence the scheduling behavior */
         /* only updates charactor buffer and calls an empty callback func */
-        AWAITS(_pid, skip)
+        AWAITS(tid, skip)
     fi;
-    AWAITS(_pid, IRet());
+    AWAITS(tid, IRet());
 
     goto endInts
 }
 
 /* users are in non-privileged mode */
-active [NBUSERS] proctype users()
+proctype users(byte tid)
 {
-    assert(USER0 <= _pid && _pid < SOFTIRQ);
-    (all_process_prepare_to_run);
+    assert(USER0 <= tid && tid < SOFTIRQ);
 endUsers:
     if
-    :: _pid == USER0 ->
+    :: tid == USER0 ->
         /* mutex initials at mutex_initialize */
-        mutex_lock(mutex, _pid);
-        AWAITS(_pid, sys_call(SYS_PTHREAD_YIELD));
-        mutex_unlock(mutex, _pid)
+        mutex_lock(mutex, tid);
+        AWAITS(tid, sys_call(SYS_PTHREAD_YIELD));
+        mutex_unlock(mutex, tid)
     :: else ->
-        mutex_lock(mutex, _pid);
-        mutex_unlock(mutex, _pid)
+        mutex_lock(mutex, tid);
+        mutex_unlock(mutex, tid)
     fi;
 
     goto endUsers
 }
 
 /* softirq is in non-privileged mode */
-active proctype softirq()
+proctype softirq(byte tid)
 {
     byte idx, max_prio, next_tasklet = NO_BH_TASK;
     bool del_queue_check;
-    assert(_pid == SOFTIRQ);
-    (all_process_prepare_to_run);
+    assert(tid == SOFTIRQ);
 endSoftirq:
-    tasklet_action(_pid);
+    tasklet_action(tid);
     /* softirqd thread should not return */
-    AWAITS(_pid, assert(next_tasklet == NO_BH_TASK));
+    AWAITS(tid, assert(next_tasklet == NO_BH_TASK));
     /* sched yield */
-    AWAITS(_pid, sys_call(SYS_PTHREAD_YIELD));
+    AWAITS(tid, sys_call(SYS_PTHREAD_YIELD));
 
     goto endSoftirq
 }
@@ -341,7 +334,24 @@ init
         thread_info_initialize();
         mutex_initialize()
     };
-    all_process_prepare_to_run = 1;
+
+    atomic {
+        run svc(SVC);
+        run pendsv(PendSV);
+        run softirq(SOFTIRQ);
+        for (idx: 2 .. (SOFTIRQ - 1)) {
+            if
+            :: PendSV < idx && idx < USER0 ->
+                /* interrupt handlers */
+                run interrupts(idx)
+            :: USER0 <= idx && idx < SOFTIRQ ->
+                /* user tasks */
+                run users(idx)
+            :: else -> assert(false)
+            fi
+        }
+        idx = 0
+    };
 
 endPendSV:
     PendSVTake();

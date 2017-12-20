@@ -43,13 +43,13 @@ mtype svc_type = DEFAULT_SYS;
 byte irq_pending;
 byte irq_prio[NBINTS + 2];
 bit PendSVReq;
-pid AT;
-pid ATStack[NBATSTACK] = UNKNOWN;
+byte AT;
+byte ATStack[NBATSTACK] = UNKNOWN;
 short ATTop;
-pid nextUser;
-pid curUser;
+byte nextUser;
+byte curUser;
 
-pid ctxt_ATStack[(NBUSERS + 1) * NBCTXT];
+byte ctxt_ATStack[(NBUSERS + 1) * NBCTXT];
 //int ctxt_ATTop[NBUSERS + 1];
 
 byte ghost_direct_AT;

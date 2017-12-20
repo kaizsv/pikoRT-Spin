@@ -4,7 +4,7 @@
 #include "variables.pml"
 #include "ti.pml"
 
-#define NBMUTEX NBALL
+#define NBMUTEX 4
 
 /* -1: unlocked, 0: locked, poritive: locked, possible waiters */
 short mutex;
