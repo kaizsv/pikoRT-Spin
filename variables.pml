@@ -28,7 +28,6 @@
 
 #define FOR_EXCEP_IDX for (idx: 2 .. (2 + NBINTS - 1))
 #define FOR_USER_IDX for (idx: USER0 .. (USER0 + NBUSERS - 1))
-#define FOR_ALL_IDX for (idx: 0 .. (NBALL - 1))
 #define FOR_CTXT_IDX for (idx: 0 .. (NBCTXT - 1))
 #define FOR_ATTOP_IDX for (idx: 0 .. ATTop)
 
@@ -45,9 +44,7 @@ byte irq_prio[NBINTS + 2];
 byte AT;
 byte ATStack[NBATSTACK] = UNKNOWN;
 short ATTop;
-byte nextUser;
 byte curUser;
-
 byte ctxt_ATStack[(NBUSERS + 1) * NBCTXT];
 //int ctxt_ATTop[NBUSERS + 1];
 
@@ -93,7 +90,6 @@ inline thread_restore(proc)
 inline system_initialize()
 {
     curUser = USER0;
-    nextUser = UNKNOWN;
     AT = USER0;
     ATTop = -1;
 

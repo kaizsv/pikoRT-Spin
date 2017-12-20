@@ -205,7 +205,7 @@ inline IRet()
 
 proctype svc(byte tid)
 {
-    byte idx, max_prio, tempUser;
+    byte idx, max_prio, nextUser, tempUser;
     bool retInATStack, retPolicy, del_queue_check;
     assert(tid == SVC);
 endSVC:
@@ -254,7 +254,7 @@ endSVC:
 
 proctype pendsv(byte tid)
 {
-    byte idx, max_prio, tempUser;
+    byte idx, max_prio, nextUser, tempUser;
     bool retInATStack, retPolicy, del_queue_check;
     assert(tid == PendSV);
 endPendSV:
