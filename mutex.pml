@@ -4,22 +4,22 @@
 #include "variables.pml"
 #include "ti.pml"
 
-#define NBMUTEX 4
+#define NBMUTEX 1
 
 /* -1: unlocked, 0: locked, poritive: locked, possible waiters */
 short mutex;
 
 /* local monitor for r0 in mutex.pml */
 bit local_monitor;
-byte mutex_head[NBMUTEX];
-short mutex_top;
+byte mutex_head[NBMUTEX] = UNKNOWN;
+byte mutex_top;
 
 inline mutex_add_tail(proc)
 {
-    mutex_top = mutex_top + 1;
     /* increase NBMUTEX if fail */
     assert(mutex_top < NBMUTEX);
     mutex_head[mutex_top] = proc
+    mutex_top = mutex_top + 1;
 }
 
 /* The inline can typically split into two inlines:
@@ -27,8 +27,8 @@ inline mutex_add_tail(proc)
  */
 inline find_first_blocking_task_and_del(ret)
 {
-    assert(mutex_top >= 0 && ret == UNKNOWN);
-    for (idx: 0 .. mutex_top) {
+    assert(mutex_top > 0 && ret == UNKNOWN);
+    for (idx: 0 .. (mutex_top - 1)) {
         if
         :: (mutex_head[idx] != UNKNOWN) && (ret == UNKNOWN) ->
             ret = mutex_head[idx]
@@ -103,11 +103,6 @@ unlock_0:
 inline mutex_initialize()
 {
     mutex = -1;
-    mutex_top = -1;
-    for (idx: 0 .. (NBMUTEX - 1)) {
-        mutex_head[idx] = UNKNOWN
-    }
-    idx = 0
 }
 
 #endif /* _MUTEX_ */
