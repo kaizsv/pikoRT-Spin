@@ -22,13 +22,13 @@
 #define NBROUTS (2 + NBINTS + NBUSERS)
 #define NBALL (NBROUTS + 1)
 #define NBATSTACK (NBINTS + 2)
-#define NBCTXT 1
+//#define NBCTXT 1
 #define UNKNOWN 255
 #define IDLE_THREAD 254
 
 #define FOR_EXCEP_IDX for (idx: 2 .. (2 + NBINTS - 1))
 #define FOR_USER_IDX for (idx: USER0 .. (USER0 + NBUSERS - 1))
-#define FOR_CTXT_IDX for (idx: 0 .. (NBCTXT - 1))
+//#define FOR_CTXT_IDX for (idx: 0 .. (NBCTXT - 1))
 #define FOR_ATTOP_IDX for (idx: 0 .. ATTop)
 
 #define AWAITS(pid, C) atomic { (pid == AT); d_step { C } }
@@ -45,7 +45,7 @@ byte AT;
 byte ATStack[NBATSTACK] = UNKNOWN;
 short ATTop;
 byte curUser;
-byte ctxt_ATStack[(NBUSERS + 1) * NBCTXT];
+//byte ctxt_ATStack[(NBUSERS + 1) * NBCTXT];
 //int ctxt_ATTop[NBUSERS + 1];
 
 byte ghost_direct_AT;
@@ -66,21 +66,22 @@ inline sys_call(__svc_type)
 inline switch_to(proc)
 {
     assert(USER0 <= proc && proc <= SOFTIRQ && ATTop == 0);
-    assert(USER0 <= ATStack[ATTop] && ATStack[ATTop] <= SOFTIRQ);
-    FOR_CTXT_IDX {
-        ctxt_ATStack[(proc - USER0) * NBCTXT + idx] = ATStack[idx]
-    }
-    idx = 0
+//    assert(USER0 <= ATStack[ATTop] && ATStack[ATTop] <= SOFTIRQ);
+    assert(proc == ATStack[ATTop])
+//    FOR_CTXT_IDX {
+//        ctxt_ATStack[(proc - USER0) * NBCTXT + idx] = ATStack[idx]
+//    }
+//    idx = 0
 }
 
 inline thread_restore(proc)
 {
-    assert(USER0 <= proc && proc <= SOFTIRQ);
-    ATTop = 0;
-    FOR_CTXT_IDX {
-        ATStack[idx] = ctxt_ATStack[(proc - USER0) * NBCTXT + idx]
-    }
-    idx = 0;
+    assert(USER0 <= proc && proc <= SOFTIRQ && ATTop == 0);
+    ATStack[ATTop] = proc;
+//    FOR_CTXT_IDX {
+//        ATStack[idx] = ctxt_ATStack[(proc - USER0) * NBCTXT + idx]
+//    }
+//    idx = 0;
     for (idx: 1 .. (NBATSTACK - 1)) {
         assert(ATStack[idx] == UNKNOWN)
     }
@@ -120,11 +121,11 @@ inline system_initialize()
      * | 4 U U U U U U | 5 U U U U U U | 6 U U U U U U |
      * |NBCTXT == NBALL|
      */
-    FOR_USER_IDX {
-        ctxt_ATStack[(idx - USER0) * NBCTXT + 0] = idx
-    }
-    idx = 0;
-    ctxt_ATStack[(SOFTIRQ - USER0) * NBCTXT + 0] = SOFTIRQ
+//    FOR_USER_IDX {
+//        ctxt_ATStack[(idx - USER0) * NBCTXT + 0] = idx
+//    }
+//    idx = 0;
+//    ctxt_ATStack[(SOFTIRQ - USER0) * NBCTXT + 0] = SOFTIRQ
 }
 
 #endif /* _VARIABLES_ */
