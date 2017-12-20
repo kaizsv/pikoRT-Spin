@@ -42,7 +42,6 @@ mtype svc_type = DEFAULT_SYS;
 
 byte irq_pending;
 byte irq_prio[NBINTS + 2];
-bit PendSVReq;
 byte AT;
 byte ATStack[NBATSTACK] = UNKNOWN;
 short ATTop;
@@ -57,7 +56,7 @@ byte ghost_direct_AT;
 inline sys_call(__svc_type)
 {
     assert(USER0 <= curUser && curUser <= SOFTIRQ);
-    assert(ATTop < 0 && irq_pending == 0 && ghost_direct_AT == 0);
+    assert(ATTop < 0 && ((irq_pending >> 2) == 0) && ghost_direct_AT == 0);
     svc_type = __svc_type;
 
     /* push_and_change_AT(SVC) is placed in pikoRT.pml, write directly */

@@ -5,15 +5,19 @@
 #include "softirq.pml"
 #include "mutex.pml"
 
+#define PENDSVREQUEST set_bit(PendSV, irq_pending)
+#define PENDSVCLEAR clear_bit(PendSV, irq_pending)
+#define GETPENDSV get_bit(PendSV, irq_pending)
+
 inline set_pending(irq)
 {
-    assert(PendSV <= irq && irq < USER0);
+    assert(PendSV < irq && irq < USER0);
     set_bit(irq, irq_pending)
 }
 
 inline clear_pending(irq)
 {
-    assert(PendSV <= irq && irq < USER0);
+    assert(PendSV < irq && irq < USER0);
     clear_bit(irq, irq_pending)
 }
 
@@ -25,8 +29,8 @@ inline clear_pending(irq)
 inline get_max_pending(ret)
 {
     ret = UNKNOWN;
-    /* SVC will not be pending, and pending of PendSV has no effect */
-    for (idx: 1 .. (USER0 - 1)) {
+    /* SVC will not be pending, and pending of PendSV has no effect here */
+    for (idx: 2 .. (USER0 - 1)) {
         if
         :: get_bit(idx, irq_pending) && (irq_prio[idx] < ret) ->
             ret = idx
@@ -160,12 +164,11 @@ inline PendSVTake()
             //interrupt_policy(PendSV, AT, retPolicy)
         };
         if
-        :: PendSVReq && !retInATStack && (AT >= USER0) ->
+        :: GETPENDSV && !retInATStack && (AT >= USER0) ->
             d_step {
                 assert(ATTop <= 0);
-                clear_pending(PendSV);
                 push_and_change_AT(PendSV);
-                PendSVReq = false
+                PENDSVCLEAR
             };
             break
         :: else -> skip
@@ -177,9 +180,10 @@ inline PendSVTake()
 inline IRet()
 {
     if
-    :: irq_pending != 0 ->
-        assert(!get_bit(PendSV, irq_pending));
+    :: (irq_pending >> 2) != 0 ->
+        /* ignore SVC and PendSV */
         get_max_pending(max_prio);
+        assert(max_prio != PendSV);
         inATStack(max_prio, retInATStack);
         interrupt_policy(max_prio, ATStack[ATTop], retPolicy);
         if
@@ -201,9 +205,8 @@ inline IRet()
 
 proctype svc(byte tid)
 {
-    byte idx, max_prio;
+    byte idx, max_prio, tempUser;
     bool retInATStack, retPolicy, del_queue_check;
-    pid tempUser;
     assert(tid == SVC);
 endSVC:
     AWAITS(tid, assert(svc_type != DEFAULT_SYS));
@@ -251,9 +254,8 @@ endSVC:
 
 proctype pendsv(byte tid)
 {
-    byte idx, max_prio;
+    byte idx, max_prio, tempUser;
     bool retInATStack, retPolicy, del_queue_check;
-    pid tempUser;
     assert(tid == PendSV);
 endPendSV:
     sched_elect(SCHED_OPT_TICK, tid);
@@ -274,7 +276,7 @@ endInts:
         /* the first interrupt is systick */
         /* TODO: future work for timer */
         tasklet_schedule(BH_SYSTICK, TIMER_SOFTIRQ_PRIO, tid);
-        AWAITS(tid, PendSVReq = 1)
+        AWAITS(tid, PENDSVREQUEST)
     :: else ->
         /* using stm32_uartx_isr() as interrupt example */
         /* this isr will not influence the scheduling behavior */
