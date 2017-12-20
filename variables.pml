@@ -21,6 +21,7 @@
 #define SOFTIRQ (2 + NBINTS + NBUSERS)
 #define NBROUTS (2 + NBINTS + NBUSERS)
 #define NBALL (NBROUTS + 1)
+#define NBATSTACK (NBINTS + 2)
 #define NBCTXT 1
 #define UNKNOWN 255
 #define IDLE_THREAD 254
@@ -39,11 +40,11 @@
 mtype = { DEFAULT_SYS, SYS_MUTEX_LOCK, SYS_MUTEX_UNLOCK, SYS_PTHREAD_YIELD };
 mtype svc_type = DEFAULT_SYS;
 
-short irq_pending;
+byte irq_pending;
 byte irq_prio[NBINTS + 2];
 bit PendSVReq;
 pid AT;
-pid ATStack[NBALL];
+pid ATStack[NBATSTACK] = UNKNOWN;
 short ATTop;
 pid nextUser;
 pid curUser;
@@ -51,8 +52,7 @@ pid curUser;
 pid ctxt_ATStack[(NBUSERS + 1) * NBCTXT];
 //int ctxt_ATTop[NBUSERS + 1];
 
-short ghost_direct_AT;
-//bit ghost_svc;
+byte ghost_direct_AT;
 
 inline sys_call(__svc_type)
 {
@@ -62,7 +62,7 @@ inline sys_call(__svc_type)
 
     /* push_and_change_AT(SVC) is placed in pikoRT.pml, write directly */
     ATTop = ATTop + 1;
-    assert(ATTop < NBALL);
+    assert(ATTop < NBATSTACK);
     ATStack[ATTop] = AT;
     AT = SVC
 }
@@ -85,7 +85,7 @@ inline thread_restore(proc)
         ATStack[idx] = ctxt_ATStack[(proc - USER0) * NBCTXT + idx]
     }
     idx = 0;
-    for (idx: 1 .. (NBALL - 1)) {
+    for (idx: 1 .. (NBATSTACK - 1)) {
         assert(ATStack[idx] == UNKNOWN)
     }
     idx = 0
@@ -97,10 +97,6 @@ inline system_initialize()
     nextUser = UNKNOWN;
     AT = USER0;
     ATTop = -1;
-    FOR_ALL_IDX {
-        ATStack[idx] = UNKNOWN
-    }
-    idx = 0;
 
     /* setting exceptin priority */
     irq_prio[SVC] = 16;

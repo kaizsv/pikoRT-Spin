@@ -54,7 +54,7 @@ inline push_and_change_AT(proc)
     if
     :: !get_bit(AT, ghost_direct_AT) ->
         ATTop = ATTop + 1;
-        assert(ATTop < NBALL);
+        assert(ATTop < NBATSTACK);
         ATStack[ATTop] = AT;
         AT = proc
     :: else ->
