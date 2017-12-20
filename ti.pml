@@ -2,9 +2,9 @@
  * Global define
  */
 
-#define THREAD_STATE_NEW 0
-#define THREAD_STATE_READY1 1
-#define THREAD_STATE_READY2 2
+#define THREAD_STATE_NEW 2
+#define THREAD_STATE_READY1 0
+#define THREAD_STATE_READY2 1
 #define THREAD_STATE_RUNNING 3
 #define THREAD_STATE_TERMINATED 4
 #define THREAD_STATE_BLOCKED 5
@@ -36,7 +36,7 @@ typedef thread_info {
 /* ACTIVED: 0
  * EXPIRED: 1
  */
-byte THREAD_SCHED_STATE[2];
+bit THREAD_SCHED_STATE[2];
 thread_info ti[NBUSERS + 1];
 
 inline swap_sched_state_map()
@@ -65,17 +65,17 @@ inline thread_info_initialize()
     ti[USER0 - USER0].ti_priority = PRI_MIN;
     ti[USER0 - USER0].ti_state = THREAD_STATE_NEW;
 
-    /* using idx2 to prevent idx being changed in sched_enqueue */
-    for (idx2: (USER0 + 1) .. (SOFTIRQ - 1)) {
-        ti[idx2 - USER0].ti_priority = PRI_MIN;
-        ti[idx2 - USER0].ti_state = THREAD_STATE_NEW;
+    /* using max_prio to prevent idx being changed in sched_enqueue */
+    for (max_prio: (USER0 + 1) .. (SOFTIRQ - 1)) {
+        ti[max_prio - USER0].ti_priority = PRI_MIN;
+        ti[max_prio - USER0].ti_state = THREAD_STATE_NEW;
 
         /* sched_enqueue(idx2, AT): prevent nested d_step */
-        ti[idx2 - USER0].ti_state = THREAD_STATE_ACTIVED;
-        add_queue_tail(idx2, get_ti_prio(idx2), sched._bm[SCHED_BITMAP_ACTIVE]);
-        set_bit(get_ti_prio(idx2), sched._bm[SCHED_BITMAP_ACTIVE].map)
+        ti[max_prio - USER0].ti_state = THREAD_STATE_ACTIVED;
+        add_queue_tail(max_prio, get_ti_prio(max_prio), sched._bm[SCHED_BITMAP_ACTIVE]);
+        set_bit(get_ti_prio(max_prio), sched._bm[SCHED_BITMAP_ACTIVE].map)
     }
-    idx2 = 0;
+    max_prio = 0;
 
     ti[SOFTIRQ - USER0].ti_priority = PRI_MAX;
     ti[SOFTIRQ - USER0].ti_state = THREAD_STATE_NEW

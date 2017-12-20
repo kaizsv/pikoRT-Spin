@@ -333,7 +333,7 @@ endSoftirq:
 
 init
 {
-    byte idx, idx2, max_prio;
+    byte idx, max_prio;
     bool retInATStack, retPolicy;
 
     d_step {
