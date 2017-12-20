@@ -97,7 +97,7 @@ inline interrupt_policy(preempt, running, ret)
          * The limitation of this model is that, the irq is triggered by
          * the running of process. The irq will not trigger again while
          * the related interrupt process are running. */
-        assert(get_bit(preempt, ghost_direct_AT) || preempt == PendSV);
+        assert(get_bit(preempt, ghost_direct_AT));
         /* the preemption can not be self */
         ret = false
     :: running >= USER0 ->
@@ -157,21 +157,18 @@ inline PendSVTake()
     :: atomic {
         d_step {
             inATStack(PendSV, retInATStack);
-            interrupt_policy(PendSV, AT, retPolicy)
+            //interrupt_policy(PendSV, AT, retPolicy)
         };
         if
-        :: PendSVReq && !retInATStack && retPolicy ->
+        :: PendSVReq && !retInATStack && (AT >= USER0) ->
             d_step {
+                assert(ATTop <= 0);
                 clear_pending(PendSV);
                 push_and_change_AT(PendSV);
                 PendSVReq = false
             };
             break
-        :: else ->
-            /* there is no need to set PendSV pending state */
-            d_step {
-                clear_pending(PendSV)
-            }
+        :: else -> skip
         fi
        }
     od
@@ -327,7 +324,7 @@ endSoftirq:
 init
 {
     byte idx, max_prio;
-    bool retInATStack, retPolicy;
+    bool retInATStack;
 
     d_step {
         system_initialize();
