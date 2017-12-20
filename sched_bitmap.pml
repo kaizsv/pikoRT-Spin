@@ -6,7 +6,9 @@
 #include "ti.pml"
 #include "sched.pml"
 
-#define NB_WAIT_TASKS (NBUSERS + 1)
+/* XXX: increase NB_WAIT_TASKS if more than two user tasks are
+ *      in the same priority */
+#define NB_WAIT_TASKS 2
 typedef bitmap_struct {
     unsigned map : NBITMAP_BIT = 0;
     byte queue[NBITMAP_BIT * NB_WAIT_TASKS] = UNKNOWN
@@ -56,7 +58,7 @@ inline add_queue_tail(new, prio, bm)
         :: bm.queue[prio * NB_WAIT_TASKS + idx] == UNKNOWN ->
             bm.queue[prio * NB_WAIT_TASKS + idx] = new;
             break
-        :: else -> skip
+        :: else -> assert(idx != (NB_WAIT_TASKS - 1))
         // TODO: What happen if all slots are full?
         fi
     }
