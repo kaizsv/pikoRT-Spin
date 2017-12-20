@@ -9,8 +9,8 @@
 #define THREAD_STATE_TERMINATED 4
 #define THREAD_STATE_BLOCKED 5
 
-#define THREAD_STATE_ACTIVED THREAD_SCHED_STATE[0]
-#define THREAD_STATE_EXPIRED THREAD_SCHED_STATE[1]
+#define THREAD_STATE_ACTIVED (THREAD_SCHED_STATE_SWAP | THREAD_STATE_READY1)
+#define THREAD_STATE_EXPIRED (THREAD_SCHED_STATE_SWAP ^ THREAD_STATE_READY2)
 
 #define get_ti_prio(proc) ti[proc - USER0].ti_priority
 #define get_ti_state(proc) ti[proc - USER0].ti_state
@@ -36,27 +36,17 @@ typedef thread_info {
 /* ACTIVED: 0
  * EXPIRED: 1
  */
-bit THREAD_SCHED_STATE[2];
+bit THREAD_SCHED_STATE_SWAP;
 thread_info ti[NBUSERS + 1];
 
 inline swap_sched_state_map()
 {
-    if
-    :: THREAD_SCHED_STATE[0] == THREAD_STATE_READY1 ->
-        assert(THREAD_SCHED_STATE[1] == THREAD_STATE_READY2);
-        THREAD_SCHED_STATE[0] = THREAD_STATE_READY2;
-        THREAD_SCHED_STATE[1] = THREAD_STATE_READY1
-    :: THREAD_SCHED_STATE[0] == THREAD_STATE_READY2 ->
-        assert(THREAD_SCHED_STATE[1] == THREAD_STATE_READY1);
-        THREAD_SCHED_STATE[0] = THREAD_STATE_READY1;
-        THREAD_SCHED_STATE[1] = THREAD_STATE_READY2
-    fi
+    THREAD_SCHED_STATE_SWAP = THREAD_SCHED_STATE_SWAP ^ 1
 }
 
 inline thread_info_initialize()
 {
-    THREAD_SCHED_STATE[0] = THREAD_STATE_READY1;
-    THREAD_SCHED_STATE[1] = THREAD_STATE_READY2;
+    THREAD_SCHED_STATE_SWAP = 0;
 
     /* The USER0 is the user's entry-point to the system. It is not
      * added to the runqueue because it has been implicityl "elecetd"
