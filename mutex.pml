@@ -18,8 +18,8 @@ inline mutex_add_tail(proc)
 {
     /* increase NBMUTEX if fail */
     assert(mutex_top < NBMUTEX);
-    mutex_head[mutex_top] = proc
-    mutex_top = mutex_top + 1;
+    mutex_head[mutex_top] = proc;
+    mutex_top = mutex_top + 1
 }
 
 /* The inline can typically split into two inlines:
