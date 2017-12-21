@@ -219,8 +219,7 @@ endSVC:
             AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_BLOCKED);
             AWAITS(tid, mutex_add_tail(curUser));
             sched_elect(SCHED_OPT_NONE, tid)
-        :: else ->
-            AWAITS(tid, skip)
+        :: else -> skip
         fi
     :: svc_type == SYS_MUTEX_UNLOCK ->
         AWAITS(tid, max_prio = UNKNOWN);
@@ -230,8 +229,7 @@ endSVC:
             AWAITS(tid, find_first_blocking_task_and_del(max_prio));
             // XXX: mutex_del(max_prio)
             sched_enqueue(max_prio, tid)
-        :: else ->
-            AWAITS(tid, skip)
+        :: else -> skip
         fi;
         if
         :: get_ti_state(curUser) == THREAD_STATE_BLOCKED ->
@@ -239,8 +237,7 @@ endSVC:
         :: max_prio != UNKNOWN && get_ti_prio(curUser) <= get_ti_prio(max_prio) ->
             sched_enqueue(curUser, tid);
             sched_elect(SCHED_OPT_NONE, tid)
-        :: else ->
-            AWAITS(tid, skip)
+        :: else -> skip
         fi
     :: svc_type == SYS_PTHREAD_YIELD ->
         sched_enqueue(curUser, tid);
@@ -281,7 +278,7 @@ endInts:
         /* using stm32_uartx_isr() as interrupt example */
         /* this isr will not influence the scheduling behavior */
         /* only updates charactor buffer and calls an empty callback func */
-        AWAITS(tid, skip)
+        skip
     fi;
     AWAITS(tid, IRet());
 
@@ -316,9 +313,8 @@ proctype softirq(byte tid)
 endSoftirq:
     tasklet_action(tid);
     /* softirqd thread should not return */
-    AWAITS(tid, assert(next_tasklet == NO_BH_TASK));
     /* sched yield */
-    AWAITS(tid, sys_call(SYS_PTHREAD_YIELD));
+    AWAITS(tid, assert(next_tasklet == NO_BH_TASK); sys_call(SYS_PTHREAD_YIELD));
 
     goto endSoftirq
 }
@@ -346,7 +342,6 @@ init
             :: USER0 <= idx && idx < SOFTIRQ ->
                 /* user tasks */
                 run users(idx)
-            :: else -> assert(false)
             fi
         }
         idx = 0

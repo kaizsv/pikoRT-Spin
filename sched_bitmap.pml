@@ -40,9 +40,8 @@ inline find_next_thread(bm, ret, tid)
         AWAITS(tid, ret = IDLE_THREAD)
     :: else ->
         /* bitmap_first_entry() */
-        AWAITS(tid, ret = bm.queue[max_prio * NB_WAIT_TASKS + 0])
-    fi;
-    AWAITS(tid, assert(ret != UNKNOWN))
+        AWAITS(tid, ret = bm.queue[max_prio * NB_WAIT_TASKS + 0]; assert(ret != UNKNOWN))
+    fi
 }
 
 // XXX: can move out of the sched_bitmap.pml
@@ -105,8 +104,7 @@ inline bitmap_queue_del(del, prio, bm, tid)
     :: bm.queue[prio * NB_WAIT_TASKS + 0] == UNKNOWN ->
         /* list empty */
         AWAITS(tid, clear_bit(prio, bm.map))
-    :: else ->
-        AWAITS(tid, skip)
+    :: else -> skip
     fi
 }
 
@@ -117,7 +115,7 @@ inline sched_bitmap_dequeue(dequeue, prio, bm, tid)
         bitmap_queue_del(dequeue, prio, bm, tid)
     :: else ->
         /* active thread is not in the runqueue */
-        AWAITS(tid, skip)
+        skip
     fi
 }
 
@@ -138,16 +136,14 @@ inline sched_bitmap_elect(flags, tid)
     :: (nextUser == IDLE_THREAD && tempUser != IDLE_THREAD) ->
         AWAITS(tid, swap_sched_state());
         find_next_thread(sched._bm[SCHED_BITMAP_ACTIVE], nextUser, tid)
-    :: else ->
-        AWAITS(tid, skip)
+    :: else -> skip
     fi;
 
     /* idle thread */
     if
     :: nextUser != IDLE_THREAD ->
         bitmap_queue_del(nextUser, get_ti_prio(nextUser), sched._bm[SCHED_BITMAP_ACTIVE], tid)
-    :: else ->
-        AWAITS(tid, skip)
+    :: else -> skip
     fi;
 
     /* context switch */
@@ -161,15 +157,13 @@ inline sched_bitmap_elect(flags, tid)
     :: (nextUser == IDLE_THREAD || nextUser == curUser) ->
         AWAITS(tid, assert(flags != SCHED_OPT_RESTORE_ONLY))
     :: else ->
-        AWAITS(tid, assert(flags != SCHED_OPT_RESTORE_ONLY))
         if
         :: flags == SCHED_OPT_TICK ->
             /* task enqueue to SCHED_BITMAP_EXPIRE */
             AWAITS(tid, add_queue_tail(curUser, get_ti_prio(curUser), sched._bm[SCHED_BITMAP_EXPIRE]));
             AWAITS(tid, set_bit(get_ti_prio(curUser), sched._bm[SCHED_BITMAP_EXPIRE].map));
             AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_EXPIRED)
-        :: else ->
-            AWAITS(tid, skip)
+        :: else -> assert(flags != SCHED_OPT_RESTORE_ONLY)
         fi;
         AWAITS(tid, switch_to(curUser));
         AWAITS(tid, curUser = nextUser);

@@ -5,7 +5,7 @@
 #include "helper.pml"
 #include "sched.pml"
 #include "sched_bitmap.pml"
-#include "systick.pml"
+//#include "systick.pml"
 
 #define PRIO_TASKLET_MINPRIO 31
 #define TIMER_SOFTIRQ_PRIO 0
@@ -23,8 +23,6 @@ inline tasklet_bitmap_enqueue(new, prio, tid)
 
 inline tasklet_schedule(task, prio, tid)
 {
-    /* if the assert fails, use condition statement to skip the false */
-    AWAITS(tid, assert(task != NO_BH_TASK || prio <= PRIO_TASKLET_MINPRIO));
     tasklet_bitmap_enqueue(task, prio, tid);
 
     /* raise softirq */
@@ -32,8 +30,7 @@ inline tasklet_schedule(task, prio, tid)
     :: !ghost_softirq ->
         sched_enqueue(SOFTIRQ, tid);
         AWAITS(tid, ghost_softirq = 1)
-    :: else ->
-        AWAITS(tid, skip)
+    :: else -> skip
     fi
 }
 
@@ -60,8 +57,8 @@ inline tasklet_action(tid)
              * fi
              */
             /* the elected tasketlet must be systick buttom half */
-            AWAITS(tid, assert(next_tasklet == BH_SYSTICK));
-            systick_bh(tid)
+            AWAITS(tid, assert(next_tasklet == BH_SYSTICK))
+            //systick_bh(tid): XXX do nothing
         :: else ->
             AWAITS(tid, next_tasklet = NO_BH_TASK);
             /* AWAITS without d_step for break */
