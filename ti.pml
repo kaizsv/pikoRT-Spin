@@ -62,8 +62,8 @@ inline thread_info_initialize()
 
         /* sched_enqueue(idx2, AT): prevent nested d_step */
         ti[max_prio - USER0].ti_state = THREAD_STATE_ACTIVED;
-        add_queue_tail(max_prio, get_ti_prio(max_prio), sched._bm[SCHED_BITMAP_ACTIVE]);
-        set_bit(get_ti_prio(max_prio), sched._bm[SCHED_BITMAP_ACTIVE].map)
+        add_queue_tail(max_prio, get_ti_prio(max_prio), sched_bm[SCHED_BITMAP_ACTIVE]);
+        set_bit(get_ti_prio(max_prio), sched_bm[SCHED_BITMAP_ACTIVE].map)
     }
     max_prio = 0;
 

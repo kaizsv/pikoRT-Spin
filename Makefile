@@ -35,7 +35,7 @@ safety_bfs_full: safety_bfs
 
 safety_dfs_full: MLIMIT = $(MAXMLIMIT)
 safety_dfs_full: clean $(OUT)_safety_dfs
-	./$(OUT) -m100000000
+	./$(OUT) -m60000000
 
 ltl_safety_bfs: clean $(OUT)_ltl
 	./$(OUT)
