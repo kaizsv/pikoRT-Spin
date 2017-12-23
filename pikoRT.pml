@@ -209,6 +209,7 @@ proctype svc(byte tid)
     bool retInATStack, retPolicy, del_queue_check;
     assert(tid == SVC);
 endSVC:
+    skip;
     AWAITS(tid, assert(svc_type != DEFAULT_SYS));
     if
     :: svc_type == SYS_MUTEX_LOCK ->

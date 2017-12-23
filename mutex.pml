@@ -54,6 +54,7 @@ inline mutex_lock(__mutex, tid)
 {
     skip;
 lock_0:
+    skip;
     /* ldrex r1, [r0] */
     AWAITS(tid, local_monitor = 1);
     if
@@ -79,6 +80,7 @@ inline mutex_unlock(__mutex, tid)
 {
     skip;
 unlock_0:
+    skip;
     /* ldrex r1, [r0] */
     AWAITS(tid, local_monitor = 1);
     if

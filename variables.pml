@@ -31,7 +31,7 @@
 //#define FOR_CTXT_IDX for (idx: 0 .. (NBCTXT - 1))
 #define FOR_ATTOP_IDX for (idx: 0 .. ATTop)
 
-#define AWAITS(pid, C) atomic { (pid == AT); d_step { C } }
+#define AWAITS(pid, C) d_step { (pid == AT) -> C }
 
 #ifndef _VARIABLES_
 #define _VARIABLES_
