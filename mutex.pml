@@ -11,8 +11,6 @@ short mutex;
 
 /* local monitor for r0 in mutex.pml */
 bit local_monitor;
-byte mutex_head[NBMUTEX] = UNKNOWN;
-byte mutex_top;
 
 inline mutex_add_tail(proc)
 {
