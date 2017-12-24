@@ -82,9 +82,9 @@ inline del_queue(del, prio, bm)
                 if
                 :: idx == (NB_WAIT_TASKS - 1) ->
                     bm.queue[prio * NB_WAIT_TASKS + idx] = UNKNOWN
-                :: else -> skip
+                :: else
                 fi
-            :: else -> skip
+            :: else
             fi
         fi
     }
@@ -99,7 +99,7 @@ inline bitmap_queue_del(del, prio, bm, tid)
     :: bm.queue[prio * NB_WAIT_TASKS + 0] == UNKNOWN ->
         /* list empty */
         AWAITS(tid, clear_bit(prio, bm.map))
-    :: else -> skip
+    :: else
     fi
 }
 
@@ -108,9 +108,8 @@ inline sched_bitmap_dequeue(dequeue, prio, bm, tid)
     if
     :: dequeue != curUser ->
         bitmap_queue_del(dequeue, prio, bm, tid)
-    :: else ->
+    :: else
         /* active thread is not in the runqueue */
-        skip
     fi
 }
 
@@ -125,14 +124,14 @@ inline sched_bitmap_elect(flags, tid)
     :: (nextUser == IDLE_THREAD && tempUser != IDLE_THREAD) ->
         AWAITS(tid, swap_sched_state_map());
         find_next_thread(sched_bm[SCHED_BITMAP_ACTIVE], nextUser, tid)
-    :: else -> skip
+    :: else
     fi;
 
     /* idle thread */
     if
     :: nextUser != IDLE_THREAD ->
         bitmap_queue_del(nextUser, get_ti_prio(nextUser), sched_bm[SCHED_BITMAP_ACTIVE], tid)
-    :: else -> skip
+    :: else
     fi;
 
     /* context switch */

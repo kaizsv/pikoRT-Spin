@@ -34,7 +34,7 @@ inline get_max_pending(ret)
         if
         :: get_bit(idx, irq_pending) && (irq_prio[idx] < ret) ->
             ret = idx
-        :: else -> skip
+        :: else
         fi
     }
     idx = 0;
@@ -85,7 +85,7 @@ inline inATStack(proc, ret)
         if
         :: ATStack[idx] == proc ->
             ret = true; break
-        :: else -> skip
+        :: else
         fi
     }
     idx = 0
@@ -149,7 +149,7 @@ inline ITake(proc)
                 clear_pending(proc)
             };
             break
-        :: else -> skip
+        :: else
         fi
        }
     od
@@ -171,7 +171,7 @@ inline PendSVTake()
                 PENDSVCLEAR
             };
             break
-        :: else -> skip
+        :: else
         fi
        }
     od
@@ -220,7 +220,7 @@ endSVC:
             AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_BLOCKED);
             AWAITS(tid, mutex_add_tail(curUser));
             sched_elect(SCHED_OPT_NONE, tid)
-        :: else -> skip
+        :: else
         fi
     :: svc_type == SYS_MUTEX_UNLOCK ->
         AWAITS(tid, max_prio = UNKNOWN);
@@ -230,7 +230,7 @@ endSVC:
             AWAITS(tid, find_first_blocking_task_and_del(max_prio));
             // XXX: mutex_del(max_prio)
             sched_enqueue(max_prio, tid)
-        :: else -> skip
+        :: else
         fi;
         if
         :: get_ti_state(curUser) == THREAD_STATE_BLOCKED ->
@@ -238,7 +238,7 @@ endSVC:
         :: max_prio != UNKNOWN && get_ti_prio(curUser) <= get_ti_prio(max_prio) ->
             sched_enqueue(curUser, tid);
             sched_elect(SCHED_OPT_NONE, tid)
-        :: else -> skip
+        :: else
         fi
     :: svc_type == SYS_PTHREAD_YIELD ->
         sched_enqueue(curUser, tid);
@@ -275,11 +275,10 @@ endInts:
         /* TODO: future work for timer */
         tasklet_schedule(BH_SYSTICK, TIMER_SOFTIRQ_PRIO, tid);
         AWAITS(tid, PENDSVREQUEST)
-    :: else ->
+    :: else
         /* using stm32_uartx_isr() as interrupt example */
         /* this isr will not influence the scheduling behavior */
         /* only updates charactor buffer and calls an empty callback func */
-        skip
     fi;
     AWAITS(tid, IRet());
 

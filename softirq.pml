@@ -30,7 +30,7 @@ inline tasklet_schedule(task, prio, tid)
     :: !ghost_softirq ->
         sched_enqueue(SOFTIRQ, tid);
         AWAITS(tid, ghost_softirq = 1)
-    :: else -> skip
+    :: else
     fi
 }
 

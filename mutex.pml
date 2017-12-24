@@ -39,9 +39,9 @@ inline find_first_blocking_task_and_del(ret)
                 if
                 :: idx == mutex_top ->
                     mutex_head[idx] = UNKNOWN
-                :: else -> skip
+                :: else
                 fi
-            :: else -> skip
+            :: else
             fi
         fi
     }
