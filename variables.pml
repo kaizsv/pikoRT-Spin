@@ -1,10 +1,15 @@
 /* pid:
  *                           2 ~      (2+NBINTS)~
- *   0         1        (2+NBINTS-1)  (NBROUTS-1) (2+NBINTS+NBUSERS)
+ *   0         1        (2+NBINTS-1)  (SOFTIRQ-1) (2+NBINTS+NBUSERS)
  *  svc  ||  pendsv  ||  interrupts  ||  users  ||  softirq
  *
  * Note:
  * softirq is one of the user tasks.
+ *
+ * Note:
+ * BITMAP_BITS is defined for bitmap to reduce the memory usage of
+ * bitmap structure it contains NBUSERS and SOFTIRQ and must be
+ * real number (not include expression operators).
  *
  * Warning:
  * The number of users and interrupts must smaller or equal than seven.
@@ -19,8 +24,7 @@
 #define PendSV 1
 #define USER0 (2 + NBINTS)
 #define SOFTIRQ (2 + NBINTS + NBUSERS)
-#define NBROUTS (2 + NBINTS + NBUSERS)
-#define NBALL (NBROUTS + 1)
+#define NBALL (SOFTIRQ + 1)
 #define NBATSTACK (NBINTS + 2)
 //#define NBCTXT 1
 #define UNKNOWN 255

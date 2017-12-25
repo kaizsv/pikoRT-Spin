@@ -46,7 +46,7 @@ inline get_max_pending(ret)
 inline change_AT_directly(proc)
 {
     assert(PendSV < proc && proc < USER0);
-    assert(ghost_direct_AT <= (1 << proc));
+    assert(ghost_direct_AT < (1 << proc));
     set_bit(proc, ghost_direct_AT);
     AT = proc
 }
@@ -55,6 +55,7 @@ inline push_and_change_AT(proc)
 {
     if
     :: !get_bit(AT, ghost_direct_AT) ->
+        /* XXX: this might be false if SOFTIRQ is greater than 7 */
         ATTop = ATTop + 1;
         assert(ATTop < NBATSTACK);
         ATStack[ATTop] = AT;
@@ -65,6 +66,7 @@ inline push_and_change_AT(proc)
          * preempt by higher priority exception, however, AT has not
          * process the ITake to clear the ghost bit. Thus, can not push
          * to the ATStack. */
+        clear_bit(AT, ghost_direct_AT);
         AT = proc
     fi
 }
@@ -118,8 +120,9 @@ inline interrupt_policy(preempt, running, ret)
         set_pending(preempt);
         get_max_pending(max_prio);
         if
-        :: irq_prio[max_prio] < irq_prio[running] && preempt == max_prio ->
-            assert(!get_bit(preempt, ghost_direct_AT));
+        :: irq_prio[max_prio] < irq_prio[running] ->
+            /* preempt directly, and not from irq_pending */
+            assert(!get_bit(preempt, ghost_direct_AT) && preempt == max_prio);
             ret = true
         :: else ->
             ret = false
@@ -140,15 +143,14 @@ inline ITake(proc)
             d_step {
                 clear_pending(proc);
                 push_and_change_AT(proc)
-            };
-            break
+            }; break
         :: !retInATStack && get_bit(proc, ghost_direct_AT) ->
-            /* change AT directly from IRet, similar to tail-chaining */
+            /* change AT directly from IRet or irq_pending from
+             * interrupt_policy, similar to tail-chaining */
             d_step {
                 clear_bit(proc, ghost_direct_AT);
                 clear_pending(proc)
-            };
-            break
+            }; break
         :: else
         fi
        }
@@ -160,7 +162,7 @@ inline PendSVTake()
     do
     :: atomic {
         d_step {
-            inATStack(PendSV, retInATStack);
+            inATStack(PendSV, retInATStack)
             //interrupt_policy(PendSV, AT, retPolicy)
         };
         if
@@ -169,8 +171,7 @@ inline PendSVTake()
                 assert(ATTop <= 0);
                 push_and_change_AT(PendSV);
                 PENDSVCLEAR
-            };
-            break
+            }; break
         :: else
         fi
        }
