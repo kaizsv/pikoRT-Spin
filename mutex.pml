@@ -6,6 +6,10 @@
 
 #define NBMUTEX 1
 
+typedef mutex_head {
+    byte queue[NBMUTEX] = UNKNOWN
+};
+
 /* -1: unlocked, 0: locked, poritive: locked, possible waiters */
 short mutex;
 
@@ -14,38 +18,33 @@ bit local_monitor;
 
 inline mutex_add_tail(proc)
 {
-    /* increase NBMUTEX if fail */
-    assert(mutex_top < NBMUTEX);
-    mutex_head[mutex_top] = proc;
-    mutex_top = mutex_top + 1
+    for (idx: 0 .. (NBMUTEX - 1)) {
+        if
+        :: mutex_list.queue[idx] == UNKNOWN ->
+            mutex_list.queue[idx] = proc
+        :: else -> assert(idx < NBMUTEX - 1)
+        /* increase NBMUTEX if fail */
+        fi
+    }
+    idx = 0
 }
 
 /* The inline can typically split into two inlines:
  * find_first_blocking_task and mutex_del.
  */
-inline find_first_blocking_task_and_del(ret)
+inline find_first_blocking_task(ret)
 {
-    assert(mutex_top > 0 && ret == UNKNOWN);
-    for (idx: 0 .. (mutex_top - 1)) {
+    assert(ret == UNKNOWN);
+    for (idx: 0 .. (NBMUTEX - 1)) {
         if
-        :: (mutex_head[idx] != UNKNOWN) && (ret == UNKNOWN) ->
-            ret = mutex_head[idx]
-        :: else ->
-            if
-            :: ret != UNKNOWN ->
-                mutex_head[idx - 1] = mutex_head[idx];
-                if
-                :: idx == mutex_top ->
-                    mutex_head[idx] = UNKNOWN
-                :: else
-                fi
-            :: else
-            fi
+        :: mutex_list.queue[idx] != UNKNOWN ->
+            ret = mutex_list.queue[idx];
+            break
+        :: else
         fi
     }
     idx = 0;
-    assert(ret != UNKNOWN);
-    mutex_top = mutex_top - 1
+    assert(ret != UNKNOWN)
 }
 
 inline mutex_lock(__mutex, tid)

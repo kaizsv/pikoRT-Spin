@@ -207,8 +207,7 @@ proctype svc(byte tid)
 {
     byte idx, max_prio, nextUser, tempUser;
     bool retInATStack, retPolicy, del_queue_check;
-    byte mutex_head[NBMUTEX] = UNKNOWN;
-    byte mutex_top;
+    mutex_head mutex_list;
     assert(tid == SVC);
 endSVC:
     skip;
@@ -229,8 +228,8 @@ endSVC:
         AWAITS(tid, mutex = mutex - 1);
         if
         :: mutex >= 0 ->
-            AWAITS(tid, find_first_blocking_task_and_del(max_prio));
-            // XXX: mutex_del(max_prio)
+            AWAITS(tid, find_first_blocking_task(max_prio));
+            AWAITS(tid, list_del(max_prio, mutex_list, 0, NBMUTEX));
             sched_enqueue(max_prio, tid)
         :: else
         fi;

@@ -65,36 +65,9 @@ inline sched_bitmap_enqueue(new, prio, tid)
     AWAITS(tid, set_bit(prio, sched_bm[SCHED_BITMAP_ACTIVE].map))
 }
 
-/* XXX: del_queue will remove the task from runqueue and move the slots
- * behind the task forward to act as the delection in link list. */
-inline del_queue(del, prio, bm)
-{
-    for (idx: 0 .. (NB_WAIT_TASKS - 1)) {
-        if
-        :: (bm.queue[prio * NB_WAIT_TASKS + idx] == del) && !del_queue_check ->
-            del_queue_check = true
-        :: else ->
-            if
-            :: del_queue_check ->
-                /* del_queue_check */
-                bm.queue[prio * NB_WAIT_TASKS + idx - 1] =
-                    bm.queue[prio * NB_WAIT_TASKS + idx];
-                if
-                :: idx == (NB_WAIT_TASKS - 1) ->
-                    bm.queue[prio * NB_WAIT_TASKS + idx] = UNKNOWN
-                :: else
-                fi
-            :: else
-            fi
-        fi
-    }
-    idx = 0;
-    del_queue_check = false
-}
-
 inline bitmap_queue_del(del, prio, bm, tid)
 {
-    AWAITS(tid, del_queue(del, prio, bm));
+    AWAITS(tid, list_del(del, bm, prio * NB_WAIT_TASKS, NB_WAIT_TASKS));
     if
     :: bm.queue[prio * NB_WAIT_TASKS + 0] == UNKNOWN ->
         /* list empty */
