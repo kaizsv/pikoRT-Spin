@@ -16,22 +16,6 @@ short mutex;
 /* local monitor for r0 in mutex.pml */
 bit local_monitor;
 
-inline mutex_add_tail(proc)
-{
-    for (idx: 0 .. (NBMUTEX - 1)) {
-        if
-        :: mutex_list.queue[idx] == UNKNOWN ->
-            mutex_list.queue[idx] = proc
-        :: else -> assert(idx < NBMUTEX - 1)
-        /* increase NBMUTEX if fail */
-        fi
-    }
-    idx = 0
-}
-
-/* The inline can typically split into two inlines:
- * find_first_blocking_task and mutex_del.
- */
 inline find_first_blocking_task(ret)
 {
     assert(ret == UNKNOWN);

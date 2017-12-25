@@ -29,7 +29,7 @@
  * but the modification of mutex is globally. To reduce the model size
  * regardless the usage of ti_private. */
 typedef thread_info {
-    byte ti_priority;
+    byte ti_priority
     byte ti_state
 };
 
@@ -62,7 +62,7 @@ inline thread_info_initialize()
 
         /* sched_enqueue(idx2, AT): prevent nested d_step */
         ti[max_prio - USER0].ti_state = THREAD_STATE_ACTIVED;
-        add_queue_tail(max_prio, get_ti_prio(max_prio), sched_bm[SCHED_BITMAP_ACTIVE]);
+        list_add_tail(max_prio, sched_bm[SCHED_BITMAP_ACTIVE], get_ti_prio(max_prio) * NB_WAIT_TASKS, NB_WAIT_TASKS);
         set_bit(get_ti_prio(max_prio), sched_bm[SCHED_BITMAP_ACTIVE].map)
     }
     max_prio = 0;

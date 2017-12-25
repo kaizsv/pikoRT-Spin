@@ -219,7 +219,7 @@ endSVC:
         :: mutex != 0 ->
             //AWAITS(tid, ti[curUser - USER0].ti_private = mutex);
             AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_BLOCKED);
-            AWAITS(tid, mutex_add_tail(curUser));
+            AWAITS(tid, list_add_tail(curUser, mutex_list, 0, NBMUTEX));
             sched_elect(SCHED_OPT_NONE, tid)
         :: else
         fi

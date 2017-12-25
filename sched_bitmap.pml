@@ -10,7 +10,7 @@
  *      in the same priority */
 #define NB_WAIT_TASKS 2
 typedef bitmap_struct {
-    unsigned map : NBITMAP_BIT = 0;
+    unsigned map : NBITMAP_BIT = 0
     byte queue[NBITMAP_BIT * NB_WAIT_TASKS] = UNKNOWN
 };
 
@@ -39,29 +39,9 @@ inline find_next_thread(bm, ret, tid)
     fi
 }
 
-// XXX: can move out of the sched_bitmap.pml
-inline add_queue_tail(new, prio, bm)
-{
-    /* increase BITMAP_BITS if fails */
-    assert(prio < NBITMAP_BIT);
-    for (idx: 0 .. (NB_WAIT_TASKS - 1)) {
-        if
-        :: bm.queue[prio * NB_WAIT_TASKS + idx] == new ->
-            assert(bm.map == prio_tasklet.map);
-            break
-        :: bm.queue[prio * NB_WAIT_TASKS + idx] == UNKNOWN ->
-            bm.queue[prio * NB_WAIT_TASKS + idx] = new;
-            break
-        :: else -> assert(idx != (NB_WAIT_TASKS - 1))
-        // TODO: What happen if all slots are full?
-        fi
-    }
-    idx = 0
-}
-
 inline sched_bitmap_enqueue(new, prio, tid)
 {
-    AWAITS(tid, add_queue_tail(new, prio, sched_bm[SCHED_BITMAP_ACTIVE]));
+    AWAITS(tid, list_add_tail(new, sched_bm[SCHED_BITMAP_ACTIVE], prio * NB_WAIT_TASKS, NB_WAIT_TASKS));
     AWAITS(tid, set_bit(prio, sched_bm[SCHED_BITMAP_ACTIVE].map))
 }
 
@@ -121,7 +101,7 @@ inline sched_bitmap_elect(flags, tid)
         if
         :: flags == SCHED_OPT_TICK ->
             /* task enqueue to SCHED_BITMAP_EXPIRE */
-            AWAITS(tid, add_queue_tail(curUser, get_ti_prio(curUser), sched_bm[SCHED_BITMAP_EXPIRE]));
+            AWAITS(tid, list_add_tail(curUser, sched_bm[SCHED_BITMAP_EXPIRE], get_ti_prio(curUser) * NB_WAIT_TASKS, NB_WAIT_TASKS));
             AWAITS(tid, set_bit(get_ti_prio(curUser), sched_bm[SCHED_BITMAP_EXPIRE].map));
             AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_EXPIRED)
         :: else -> assert(flags != SCHED_OPT_RESTORE_ONLY)

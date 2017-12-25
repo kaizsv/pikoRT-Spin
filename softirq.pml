@@ -15,10 +15,18 @@
 
 bitmap_struct prio_tasklet;
 
+// XXX: Because there are only one bottom half task in this model.
+//      To prevent redundant task asserting into the slot, check
+//      if map is zero or not.
+// TODO: Rewrite if there are more than one bottom half tasks
 inline tasklet_bitmap_enqueue(new, prio, tid)
 {
-    AWAITS(tid, add_queue_tail(new, prio, prio_tasklet));
-    AWAITS(tid, set_bit(prio, prio_tasklet.map))
+    if
+    :: prio_tasklet.map == 0 ->
+        AWAITS(tid, list_add_tail(new, prio_tasklet, prio * NB_WAIT_TASKS, NB_WAIT_TASKS));
+        AWAITS(tid, set_bit(prio, prio_tasklet.map))
+    :: else
+    fi
 }
 
 inline tasklet_schedule(task, prio, tid)
