@@ -31,6 +31,12 @@ inline add_tail(new, bm, prio, size)
     list_add_tail(new, bm, prio * size, size)
 }
 
+inline bitmap_first_entry(bm, prio, ret)
+{
+    ret = bm.queue[prio * NB_WAIT_TASKS + 0];
+    assert(ret != UNKNOWN)
+}
+
 inline find_next_thread(bm, ret, tid)
 {
     AWAITS(tid, find_first_bit(bm.map, max_prio, PRI_MIN));
@@ -40,8 +46,7 @@ inline find_next_thread(bm, ret, tid)
         /* empty bm.map */
         AWAITS(tid, ret = IDLE_THREAD)
     :: else ->
-        /* bitmap_first_entry() */
-        AWAITS(tid, ret = bm.queue[max_prio * NB_WAIT_TASKS + 0]; assert(ret != UNKNOWN))
+        AWAITS(tid, bitmap_first_entry(bm, max_prio, ret))
     fi
 }
 

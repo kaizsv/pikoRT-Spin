@@ -57,15 +57,16 @@ inline thread_info_initialize()
     ti[USER0 - USER0].ti_state = THREAD_STATE_NEW;
 
     /* using max_prio to prevent idx being changed in sched_enqueue */
-    for (max_prio: (USER0 + 1) .. (SOFTIRQ - 1)) {
-        ti[max_prio - USER0].ti_priority = PRI_MIN;
+//    for (idx2: (USER0 + 1) .. (SOFTIRQ - 1)) {
+        assert(NBUSERS == 2); // XXX: replace 5 with idx2 if assert fails.
+        ti[5 - USER0].ti_priority = PRI_MIN;
 
         /* sched_enqueue(idx2, AT): prevent nested d_step */
-        ti[max_prio - USER0].ti_state = THREAD_STATE_ACTIVED;
-        add_tail(max_prio, sched_bm[SCHED_BITMAP_ACTIVE], get_ti_prio(max_prio), NB_WAIT_TASKS);
-        set_bit(get_ti_prio(max_prio), sched_bm[SCHED_BITMAP_ACTIVE].map)
-    }
-    max_prio = 0;
+        ti[5 - USER0].ti_state = THREAD_STATE_ACTIVED;
+        add_tail(5, sched_bm[SCHED_BITMAP_ACTIVE], get_ti_prio(5), NB_WAIT_TASKS);
+        set_bit(get_ti_prio(5), sched_bm[SCHED_BITMAP_ACTIVE].map)
+//    }
+//    idx2 = 0;
 
     ti[SOFTIRQ - USER0].ti_priority = PRI_MAX;
     ti[SOFTIRQ - USER0].ti_state = THREAD_STATE_NEW

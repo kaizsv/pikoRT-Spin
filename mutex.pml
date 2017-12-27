@@ -5,7 +5,6 @@
 #include "ti.pml"
 
 #define NBMUTEX 1
-
 typedef mutex_head {
     byte queue[NBMUTEX] = UNKNOWN
 };

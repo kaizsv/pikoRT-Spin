@@ -326,7 +326,7 @@ endSoftirq:
 
 init
 {
-    byte idx, max_prio;
+    byte idx;
     bool retInATStack;
 
     d_step {
