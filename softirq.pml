@@ -23,7 +23,7 @@ inline tasklet_bitmap_enqueue(new, prio, tid)
 {
     if
     :: prio_tasklet.map == 0 ->
-        AWAITS(tid, list_add_tail(new, prio_tasklet, prio * NB_WAIT_TASKS, NB_WAIT_TASKS));
+        AWAITS(tid, add_tail(new, prio_tasklet, prio, NB_WAIT_TASKS));
         AWAITS(tid, set_bit(prio, prio_tasklet.map))
     :: else
     fi
@@ -42,35 +42,34 @@ inline tasklet_schedule(task, prio, tid)
     fi
 }
 
-inline tasklet_action(tid)
+inline tasklet_action(ret, tid)
 {
     do
-    :: true ->
-        if
-        :: prio_tasklet.map != 0 ->
-            AWAITS(tid, find_first_bit(prio_tasklet.map, max_prio, PRI_MIN));
-            /* bitmap_first_entry() */
-            AWAITS(tid, next_tasklet = prio_tasklet.queue[max_prio * NB_WAIT_TASKS + 0]);
-            bitmap_queue_del(next_tasklet, max_prio, prio_tasklet, tid);
+    :: if
+       :: prio_tasklet.map != 0 ->
+           AWAITS(tid, find_first_bit(prio_tasklet.map, max_prio, PRI_MIN));
+           /* bitmap_first_entry() */
+           AWAITS(tid, ret = prio_tasklet.queue[max_prio * NB_WAIT_TASKS + 0]);
+           bitmap_queue_del(ret, max_prio, prio_tasklet, tid);
 
-            /* XXX:
-             * To prevent the unreached statement, using assert rather than
-             * condition instruction. If more than one bottom half functions
-             * are used need to re-write with condition
-             *
-             * if
-             * :: next_tasklet == BH_XXX -> XXX_bh()
-             * :: ...
-             * :: else ->
-             * fi
-             */
-            /* the elected tasketlet must be systick buttom half */
-            AWAITS(tid, assert(next_tasklet == BH_SYSTICK))
-            //systick_bh(tid): XXX do nothing
-        :: else ->
-            AWAITS(tid, next_tasklet = NO_BH_TASK);
-            break
-        fi
+           /* XXX:
+            * To prevent the unreached statement, using assert rather than
+            * condition instruction. If more than one bottom half functions
+            * are used need to re-write with condition
+            *
+            * if
+            * :: next_tasklet == BH_XXX -> XXX_bh()
+            * :: ...
+            * :: else ->
+            * fi
+            */
+           /* the elected tasketlet must be systick buttom half */
+           AWAITS(tid, assert(next_tasklet == BH_SYSTICK))
+           //systick_bh(tid)
+       :: else ->
+           AWAITS(tid, ret = NO_BH_TASK);
+           break
+       fi
     od;
     skip
 }

@@ -24,6 +24,7 @@
 
 #include "variables.pml"
 #include "sched.pml"
+#include "sched_bitmap.pml"
 
 /* TODO: ti_private has been used to store mutex address in Piko/RT,
  * but the modification of mutex is globally. To reduce the model size
@@ -58,11 +59,10 @@ inline thread_info_initialize()
     /* using max_prio to prevent idx being changed in sched_enqueue */
     for (max_prio: (USER0 + 1) .. (SOFTIRQ - 1)) {
         ti[max_prio - USER0].ti_priority = PRI_MIN;
-        ti[max_prio - USER0].ti_state = THREAD_STATE_NEW;
 
         /* sched_enqueue(idx2, AT): prevent nested d_step */
         ti[max_prio - USER0].ti_state = THREAD_STATE_ACTIVED;
-        list_add_tail(max_prio, sched_bm[SCHED_BITMAP_ACTIVE], get_ti_prio(max_prio) * NB_WAIT_TASKS, NB_WAIT_TASKS);
+        add_tail(max_prio, sched_bm[SCHED_BITMAP_ACTIVE], get_ti_prio(max_prio), NB_WAIT_TASKS);
         set_bit(get_ti_prio(max_prio), sched_bm[SCHED_BITMAP_ACTIVE].map)
     }
     max_prio = 0;

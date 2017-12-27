@@ -30,10 +30,10 @@ inline list_add_tail(new, stack, base, size)
     for (idx: 0 .. (size - 1)) {
         if
         :: stack.queue[base + idx] == UNKNOWN ->
-            stack.queue[base + idx] = new;
-            break
-        :: else -> assert(idx < (size - 1) || stack.queue[base + idx] != new)
-        /* increase size if fail */
+            stack.queue[base + idx] = new; break
+        :: else ->
+            /* increase size if fail */
+            assert(idx < (size - 1) || stack.queue[base + idx] != new)
         fi
     }
     idx = 0
@@ -60,6 +60,7 @@ inline list_del(del, stack, base, size)
         fi
     }
     idx = 0;
+    assert(del_queue_check);
     del_queue_check = false
 }
 

@@ -201,8 +201,6 @@ inline IRet()
 /* -------------
  * all processes
  * ------------ */
-//TODO: the user task will not exit in this spin model
-//      there are no thread_exit abstraction.
 
 proctype svc(byte tid)
 {
@@ -278,9 +276,10 @@ endInts:
         tasklet_schedule(BH_SYSTICK, TIMER_SOFTIRQ_PRIO, tid);
         AWAITS(tid, PENDSVREQUEST)
     :: else
-        /* using stm32_uartx_isr() as interrupt example */
-        /* this isr will not influence the scheduling behavior */
-        /* only updates charactor buffer and calls an empty callback func */
+        /* using stm32_uartx_isr() as interrupt example
+         * this isr will not influence the scheduling behavior
+         * only updates charactor buffer and calls an empty callback func */
+        AWAITS(tid, skip)
     fi;
     AWAITS(tid, IRet());
 
@@ -300,8 +299,11 @@ endUsers:
         mutex_unlock(mutex, tid)
     :: else ->
         mutex_lock(mutex, tid);
+        AWAITS(tid, sys_call(SYS_PTHREAD_YIELD));
         mutex_unlock(mutex, tid)
     fi;
+
+    (!GETPENDSV);
 
     goto endUsers
 }
@@ -313,7 +315,7 @@ proctype softirq(byte tid)
     bool del_queue_check;
     assert(tid == SOFTIRQ);
 endSoftirq:
-    tasklet_action(tid);
+    tasklet_action(next_tasklet, tid);
     /* softirqd thread should not return */
     /* sched yield */
     AWAITS(tid, assert(next_tasklet == NO_BH_TASK); sys_call(SYS_PTHREAD_YIELD));

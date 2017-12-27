@@ -31,13 +31,14 @@ inline find_first_blocking_task(ret)
     assert(ret != UNKNOWN)
 }
 
+/* reset local_monitor to 1 in condition statement to
+ * prevent redundant skip condiditon in PROMELA model
+ * (jump into d_step) */
 inline mutex_lock(__mutex, tid)
 {
-    skip;
-lock_0:
-    skip;
     /* ldrex r1, [r0] */
     AWAITS(tid, local_monitor = 1);
+lock_0:
     if
     :: __mutex != -1 ->
         /* bne 1f */
@@ -49,6 +50,7 @@ lock_0:
         :: local_monitor == 1 ->
             AWAITS(tid, __mutex = 0; local_monitor = 0)
         :: else ->
+            AWAITS(tid, local_monitor = 1);
             /* bne 0b */
             goto lock_0
         fi
@@ -59,11 +61,9 @@ lock_0:
 
 inline mutex_unlock(__mutex, tid)
 {
-    skip;
-unlock_0:
-    skip;
     /* ldrex r1, [r0] */
     AWAITS(tid, local_monitor = 1);
+unlock_0:
     if
     :: __mutex != 0 ->
         /* bne 1f */
@@ -75,6 +75,7 @@ unlock_0:
         :: local_monitor == 1 ->
             AWAITS(tid, __mutex = -1; local_monitor = 0)
         :: else ->
+            AWAITS(tid, local_monitor = 1);
             /* bne 0b */
             goto unlock_0
         fi

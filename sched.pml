@@ -10,6 +10,8 @@
  * Beacuse the maximal unsigned variable width-field is 31 in spin,
  * the minimal priority can only be 30. However, the minimal priority
  * is 31 in pikoRT source code.
+ *
+ * To reduce memory usage, there is only NBUSERS+1 priority in this model.
  */
 #define NBITMAP_BIT BITMAP_BITS
 #define PRI_MAX 0
@@ -45,8 +47,8 @@ inline sched_dequeue(del, tid)
 
 inline sched_elect(flags, tid)
 {
-    sched_bitmap_elect(flags, tid)
-    AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_RUNNING);
+    sched_bitmap_elect(flags, tid);
+    AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_RUNNING)
 }
 
 #endif /* _SCHED_ */

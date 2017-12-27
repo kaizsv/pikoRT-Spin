@@ -56,7 +56,6 @@ byte ghost_direct_AT;
 
 inline sys_call(__svc_type)
 {
-    assert(USER0 <= curUser && curUser <= SOFTIRQ);
     assert(ATTop < 0 && ((irq_pending >> 2) == 0) && ghost_direct_AT == 0);
     svc_type = __svc_type;
 
@@ -70,7 +69,6 @@ inline sys_call(__svc_type)
 inline switch_to(proc)
 {
     assert(USER0 <= proc && proc <= SOFTIRQ && ATTop == 0);
-//    assert(USER0 <= ATStack[ATTop] && ATStack[ATTop] <= SOFTIRQ);
     assert(proc == ATStack[ATTop])
 //    FOR_CTXT_IDX {
 //        ctxt_ATStack[(proc - USER0) * NBCTXT + idx] = ATStack[idx]
