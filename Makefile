@@ -21,9 +21,6 @@ $(OUT): $(OUT).c
 $(OUT)_safety: SPINFLAGS += -DBFS -DSAFETY -DNOCLAIM
 $(OUT)_safety: $(OUT)
 
-$(OUT)_ltl: SPINFLAGS += -DBFS -DSAFETY
-$(OUT)_ltl: $(OUT)
-
 $(OUT)_safety_dfs: SPINFLAGS += -DSAFETY -DNOCLAIM
 $(OUT)_safety_dfs: $(OUT)
 
@@ -35,10 +32,7 @@ safety_bfs_full: safety_bfs
 
 safety_dfs_full: MLIMIT = $(MAXMLIMIT)
 safety_dfs_full: clean $(OUT)_safety_dfs
-	./$(OUT) -m60000000
-
-ltl_safety_bfs: clean $(OUT)_ltl
-	./$(OUT)
+	./$(OUT) -m100000000
 
 error_trail:
 	$(SPIN) -t -p -v $(TARGET)
@@ -50,4 +44,3 @@ clean:
 cleanall: clean
 	rm -rf $(TARGET).trail
 	rm -rf _spin_nvr.tmp
-

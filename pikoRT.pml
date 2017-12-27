@@ -303,6 +303,7 @@ endUsers:
         mutex_unlock(mutex, tid)
     fi;
 
+    /* wait for PendSV to elect new user task */
     (!GETPENDSV);
 
     goto endUsers
