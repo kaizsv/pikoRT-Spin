@@ -32,36 +32,36 @@ inline find_first_blocking_task(ret)
     assert(ret != UNKNOWN)
 }
 
-inline sys_pthread_mutex_lock()
+inline sys_pthread_mutex_lock(tid)
 {
-    AWAITS(SVC, mutex = mutex + 1);
+    AWAITS(tid, mutex = mutex + 1);
     if
     :: mutex != 0 ->
-        AWAITS(SVC, ti[curUser - USER0].ti_private = THREAD_PRIVATE_MUTEX);
-        AWAITS(SVC, ti[curUser - USER0].ti_state = THREAD_STATE_BLOCKED);
-        AWAITS(SVC, list_add_tail(curUser, mutex_list, 0, NBMUTEX));
-        sched_elect(SCHED_OPT_NONE, SVC)
+        AWAITS(tid, ti[curUser - USER0].ti_private = THREAD_PRIVATE_MUTEX);
+        AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_BLOCKED);
+        AWAITS(tid, list_add_tail(curUser, mutex_list, 0, NBMUTEX));
+        sched_elect(SCHED_OPT_NONE, tid)
     :: else
     fi
 }
 
-inline sys_pthread_mutex_unlock()
+inline sys_pthread_mutex_unlock(tid)
 {
-    AWAITS(SVC, max_prio = UNKNOWN);
-    AWAITS(SVC, mutex = mutex - 1);
+    AWAITS(tid, max_prio = UNKNOWN);
+    AWAITS(tid, mutex = mutex - 1);
     if
     :: mutex >= 0 ->
-        AWAITS(SVC, find_first_blocking_task(max_prio));
-        AWAITS(SVC, list_del(max_prio, mutex_list, 0, NBMUTEX));
-        sched_enqueue(max_prio, SVC)
+        AWAITS(tid, find_first_blocking_task(max_prio));
+        AWAITS(tid, list_del(max_prio, mutex_list, 0, NBMUTEX));
+        sched_enqueue(max_prio, tid)
     :: else
     fi;
     if
     :: get_ti_state(curUser) == THREAD_STATE_BLOCKED ->
-        sched_elect(SCHED_OPT_NONE, SVC)
+        sched_elect(SCHED_OPT_NONE, tid)
     :: max_prio != UNKNOWN && get_ti_prio(curUser) <= get_ti_prio(max_prio) ->
-        sched_enqueue(curUser, SVC);
-        sched_elect(SCHED_OPT_NONE, SVC)
+        sched_enqueue(curUser, tid);
+        sched_elect(SCHED_OPT_NONE, tid)
     :: else
     fi
 }

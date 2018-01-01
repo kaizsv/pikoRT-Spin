@@ -215,13 +215,13 @@ endSVC:
     AWAITS(tid, assert(svc_type != DEFAULT_SYS));
     if
     :: svc_type == SYS_MUTEX_LOCK ->
-        sys_pthread_mutex_lock()
+        sys_pthread_mutex_lock(tid)
     :: svc_type == SYS_MUTEX_UNLOCK ->
-        sys_pthread_mutex_unlock()
+        sys_pthread_mutex_unlock(tid)
     :: svc_type == SYS_COND_WAIT ->
-        sys_pthread_cond_wait()
+        sys_pthread_cond_wait(tid)
     :: svc_type == SYS_COND_SIGNAL ->
-        sys_pthread_cond_signal()
+        sys_pthread_cond_signal(tid)
     :: svc_type == SYS_PTHREAD_YIELD ->
         sched_enqueue(curUser, tid);
         sched_elect(SCHED_OPT_NONE, tid)
