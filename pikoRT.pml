@@ -247,7 +247,7 @@ endPendSV:
 proctype interrupts(byte tid)
 {
     byte idx, max_prio;
-    bool retInATStack, retPolicy, ghost_softirq;
+    bool retInATStack, retPolicy;
     assert(PendSV < tid && tid < USER0);
 endInts:
     ITake(tid);

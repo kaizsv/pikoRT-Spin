@@ -54,6 +54,7 @@ byte curUser;
 //int ctxt_ATTop[NBUSERS + 1];
 
 byte ghost_direct_AT;
+bit ghost_softirq;
 
 inline sys_call(__svc_type)
 {
