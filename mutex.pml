@@ -22,7 +22,8 @@ inline find_first_blocking_task(ret)
     assert(ret == UNKNOWN);
     for (idx: 0 .. (NBMUTEX - 1)) {
         if
-        :: get_ti_private(mutex_list.queue[idx]) == THREAD_PRIVATE_MUTEX ->
+        :: mutex_list.queue[idx] != UNKNOWN &&
+           get_ti_private(mutex_list.queue[idx]) == THREAD_PRIVATE_MUTEX ->
             ret = mutex_list.queue[idx];
             break
         :: else

@@ -10,6 +10,8 @@
 #define PENDSVCLEAR clear_bit(PendSV, irq_pending)
 #define GETPENDSV get_bit(PendSV, irq_pending)
 
+bit data_ready;
+
 inline set_pending(irq)
 {
     assert(PendSV < irq && irq < USER0);
@@ -275,18 +277,30 @@ proctype users(byte tid)
 endUsers:
     if
     :: tid == USER0 ->
-        /* mutex initials at mutex_initialize */
+        /* consumer */
         mutex_lock(mutex, tid);
-        AWAITS(tid, sys_call(SYS_PTHREAD_YIELD));
+        do
+        :: !data_ready ->
+            AWAITS(tid, sys_call(SYS_COND_WAIT));
+            AWAITS(tid, sys_call(SYS_MUTEX_LOCK))
+        :: else -> break
+        od; skip;
+        AWAITS(tid, data_ready = 0);
+        AWAITS(tid, sys_call(SYS_COND_SIGNAL));
         mutex_unlock(mutex, tid)
     :: else ->
+        /* producer */
         mutex_lock(mutex, tid);
-        AWAITS(tid, sys_call(SYS_PTHREAD_YIELD));
+        do
+        :: data_ready ->
+            AWAITS(tid, sys_call(SYS_COND_WAIT));
+            AWAITS(tid, sys_call(SYS_MUTEX_LOCK))
+        :: else -> break
+        od; skip;
+        AWAITS(tid, data_ready = 1);
+        AWAITS(tid, sys_call(SYS_COND_SIGNAL));
         mutex_unlock(mutex, tid)
     fi;
-
-    /* wait for PendSV to elect new user task */
-    (!GETPENDSV);
 
     goto endUsers
 }
