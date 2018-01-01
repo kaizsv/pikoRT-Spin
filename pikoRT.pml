@@ -4,6 +4,7 @@
 #include "sched.pml"
 #include "softirq.pml"
 #include "mutex.pml"
+#include "cond.pml"
 
 #define PENDSVREQUEST set_bit(PendSV, irq_pending)
 #define PENDSVCLEAR clear_bit(PendSV, irq_pending)
@@ -207,39 +208,20 @@ proctype svc(byte tid)
     byte idx, max_prio, nextUser, tempUser;
     bool retInATStack, retPolicy, del_queue_check;
     mutex_head mutex_list;
+    cond_head cond_list;
     assert(tid == SVC);
 endSVC:
     skip;
     AWAITS(tid, assert(svc_type != DEFAULT_SYS));
     if
     :: svc_type == SYS_MUTEX_LOCK ->
-        AWAITS(tid, mutex = mutex + 1);
-        if
-        :: mutex != 0 ->
-            //AWAITS(tid, ti[curUser - USER0].ti_private = mutex);
-            AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_BLOCKED);
-            AWAITS(tid, list_add_tail(curUser, mutex_list, 0, NBMUTEX));
-            sched_elect(SCHED_OPT_NONE, tid)
-        :: else
-        fi
+        sys_pthread_mutex_lock()
     :: svc_type == SYS_MUTEX_UNLOCK ->
-        AWAITS(tid, max_prio = UNKNOWN);
-        AWAITS(tid, mutex = mutex - 1);
-        if
-        :: mutex >= 0 ->
-            AWAITS(tid, find_first_blocking_task(max_prio));
-            AWAITS(tid, list_del(max_prio, mutex_list, 0, NBMUTEX));
-            sched_enqueue(max_prio, tid)
-        :: else
-        fi;
-        if
-        :: get_ti_state(curUser) == THREAD_STATE_BLOCKED ->
-            sched_elect(SCHED_OPT_NONE, tid)
-        :: max_prio != UNKNOWN && get_ti_prio(curUser) <= get_ti_prio(max_prio) ->
-            sched_enqueue(curUser, tid);
-            sched_elect(SCHED_OPT_NONE, tid)
-        :: else
-        fi
+        sys_pthread_mutex_unlock()
+    :: svc_type == SYS_COND_WAIT ->
+        sys_pthread_cond_wait()
+    :: svc_type == SYS_COND_SIGNAL ->
+        sys_pthread_cond_signal()
     :: svc_type == SYS_PTHREAD_YIELD ->
         sched_enqueue(curUser, tid);
         sched_elect(SCHED_OPT_NONE, tid)

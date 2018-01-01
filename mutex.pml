@@ -3,6 +3,8 @@
 
 #include "variables.pml"
 #include "ti.pml"
+#include "sched.pml"
+#include "helper.pml"
 
 #define NBMUTEX 1
 typedef mutex_head {
@@ -20,7 +22,7 @@ inline find_first_blocking_task(ret)
     assert(ret == UNKNOWN);
     for (idx: 0 .. (NBMUTEX - 1)) {
         if
-        :: mutex_list.queue[idx] != UNKNOWN ->
+        :: get_ti_private(mutex_list.queue[idx]) == THREAD_PRIVATE_MUTEX ->
             ret = mutex_list.queue[idx];
             break
         :: else
@@ -28,6 +30,40 @@ inline find_first_blocking_task(ret)
     }
     idx = 0;
     assert(ret != UNKNOWN)
+}
+
+inline sys_pthread_mutex_lock()
+{
+    AWAITS(SVC, mutex = mutex + 1);
+    if
+    :: mutex != 0 ->
+        AWAITS(SVC, ti[curUser - USER0].ti_private = THREAD_PRIVATE_MUTEX);
+        AWAITS(SVC, ti[curUser - USER0].ti_state = THREAD_STATE_BLOCKED);
+        AWAITS(SVC, list_add_tail(curUser, mutex_list, 0, NBMUTEX));
+        sched_elect(SCHED_OPT_NONE, SVC)
+    :: else
+    fi
+}
+
+inline sys_pthread_mutex_unlock()
+{
+    AWAITS(SVC, max_prio = UNKNOWN);
+    AWAITS(SVC, mutex = mutex - 1);
+    if
+    :: mutex >= 0 ->
+        AWAITS(SVC, find_first_blocking_task(max_prio));
+        AWAITS(SVC, list_del(max_prio, mutex_list, 0, NBMUTEX));
+        sched_enqueue(max_prio, SVC)
+    :: else
+    fi;
+    if
+    :: get_ti_state(curUser) == THREAD_STATE_BLOCKED ->
+        sched_elect(SCHED_OPT_NONE, SVC)
+    :: max_prio != UNKNOWN && get_ti_prio(curUser) <= get_ti_prio(max_prio) ->
+        sched_enqueue(curUser, SVC);
+        sched_elect(SCHED_OPT_NONE, SVC)
+    :: else
+    fi
 }
 
 /* reset local_monitor to 1 in condition statement to

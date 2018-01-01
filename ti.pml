@@ -12,6 +12,10 @@
 #define THREAD_STATE_ACTIVED (THREAD_SCHED_STATE_SWAP | THREAD_STATE_READY1)
 #define THREAD_STATE_EXPIRED (THREAD_SCHED_STATE_SWAP ^ THREAD_STATE_READY2)
 
+#define THREAD_PRIVATE_MUTEX 0
+#define THREAD_PRIVATE_COND 1
+
+#define get_ti_private(proc) ti[proc - USER0].ti_private
 #define get_ti_prio(proc) ti[proc - USER0].ti_priority
 #define get_ti_state(proc) ti[proc - USER0].ti_state
 
@@ -26,10 +30,8 @@
 #include "sched.pml"
 #include "sched_bitmap.pml"
 
-/* TODO: ti_private has been used to store mutex address in Piko/RT,
- * but the modification of mutex is globally. To reduce the model size
- * regardless the usage of ti_private. */
 typedef thread_info {
+    bit ti_private
     byte ti_priority
     byte ti_state
 };
