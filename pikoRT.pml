@@ -270,39 +270,52 @@ endInts:
     goto endInts
 }
 
-/* users are in non-privileged mode */
-proctype users(byte tid)
+// TODO: use macro to define users task
+
+proctype consumer(byte tid)
 {
-    assert(USER0 <= tid && tid < SOFTIRQ);
-endUsers:
-    if
-    :: tid == USER0 ->
-        /* consumer */
-        mutex_lock(mutex, tid);
+    assert(tid == USER0);
+endConsumer:
+    mutex_lock(mutex, tid);
+    AWAITS(tid, skip);
+    atomic {
         do
         :: !data_ready ->
-            AWAITS(tid, sys_call(SYS_COND_WAIT));
-            AWAITS(tid, sys_call(SYS_MUTEX_LOCK))
+            (tid == AT) -> sys_call(SYS_COND_WAIT);
+            (tid == AT) -> sys_call(SYS_MUTEX_LOCK);
+            (tid == AT)
         :: else -> break
-        od; skip;
-        AWAITS(tid, data_ready = 0);
-        AWAITS(tid, sys_call(SYS_COND_SIGNAL));
-        mutex_unlock(mutex, tid)
-    :: else ->
-        /* producer */
-        mutex_lock(mutex, tid);
+        od
+    };
+    AWAITS(tid, data_ready = 0);
+    AWAITS(tid, sys_call(SYS_COND_SIGNAL));
+    mutex_unlock(mutex, tid);
+    AWAITS(tid, skip);
+
+    goto endConsumer
+}
+
+proctype producer(byte tid)
+{
+    assert(tid == USER0 + 1);
+endProducer:
+    mutex_lock(mutex, tid);
+    AWAITS(tid, skip);
+    atomic {
         do
         :: data_ready ->
-            AWAITS(tid, sys_call(SYS_COND_WAIT));
-            AWAITS(tid, sys_call(SYS_MUTEX_LOCK))
+            (tid == AT) -> sys_call(SYS_COND_WAIT);
+            (tid == AT) -> sys_call(SYS_MUTEX_LOCK);
+            (tid == AT)
         :: else -> break
-        od; skip;
-        AWAITS(tid, data_ready = 1);
-        AWAITS(tid, sys_call(SYS_COND_SIGNAL));
-        mutex_unlock(mutex, tid)
-    fi;
+        od
+    };
+    AWAITS(tid, data_ready = 1);
+    AWAITS(tid, sys_call(SYS_COND_SIGNAL));
+    mutex_unlock(mutex, tid);
+    AWAITS(tid, skip);
 
-    goto endUsers
+    goto endProducer
 }
 
 /* softirq is in non-privileged mode */
@@ -335,14 +348,13 @@ init
         run svc(SVC);
         run pendsv(PendSV);
         run softirq(SOFTIRQ);
-        for (idx: 2 .. (SOFTIRQ - 1)) {
+        run consumer(USER0);
+        run producer(5);
+        for (idx: 2 .. (USER0 - 1)) {
             if
             :: PendSV < idx && idx < USER0 ->
                 /* interrupt handlers */
                 run interrupts(idx)
-            :: USER0 <= idx && idx < SOFTIRQ ->
-                /* user tasks */
-                run users(idx)
             fi
         }
         idx = 0
