@@ -60,10 +60,14 @@ inline sys_pthread_mutex_unlock(tid)
     if
     :: get_ti_state(curUser) == THREAD_STATE_BLOCKED ->
         sched_elect(SCHED_OPT_NONE, tid)
-    :: max_prio != UNKNOWN && get_ti_prio(curUser) <= get_ti_prio(max_prio) ->
-        sched_enqueue(curUser, tid);
-        sched_elect(SCHED_OPT_NONE, tid)
-    :: else
+    :: else ->
+        if
+        :: max_prio != UNKNOWN &&
+           get_ti_prio(curUser) <= get_ti_prio(max_prio) ->
+            sched_enqueue(curUser, tid);
+            sched_elect(SCHED_OPT_NONE, tid)
+        :: else
+        fi
     fi
 }
 
