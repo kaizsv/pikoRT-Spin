@@ -211,8 +211,7 @@ proctype svc(byte tid)
     bool retInATStack, retPolicy, del_queue_check;
     assert(tid == SVC);
 endSVC:
-    skip;
-    AWAITS(tid, assert(svc_type != DEFAULT_SYS));
+    (tid == AT);
     if
     :: svc_type == SYS_MUTEX_LOCK ->
         sys_pthread_mutex_lock(tid)
@@ -225,6 +224,7 @@ endSVC:
     :: svc_type == SYS_PTHREAD_YIELD ->
         sched_enqueue(curUser, tid);
         sched_elect(SCHED_OPT_NONE, tid)
+    :: else -> assert(false)
     fi;
     AWAITS(tid, svc_type = DEFAULT_SYS);
     AWAITS(tid, IRet());
