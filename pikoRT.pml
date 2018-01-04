@@ -229,6 +229,7 @@ endSVC:
     AWAITS(tid, svc_type = DEFAULT_SYS);
     AWAITS(tid, IRet());
 
+progress:
     goto endSVC
 }
 
@@ -241,6 +242,7 @@ endPendSV:
     sched_elect(SCHED_OPT_TICK, tid);
     AWAITS(tid, IRet());
 
+progress:
     goto endPendSV
 }
 
@@ -265,6 +267,7 @@ endInts:
     fi;
     AWAITS(tid, IRet());
 
+progress:
     goto endInts
 }
 
@@ -290,6 +293,7 @@ endConsumer:
     mutex_unlock(mutex, tid);
     AWAITS(tid, skip);
 
+progress:
     goto endConsumer
 }
 
@@ -313,6 +317,7 @@ endProducer:
     mutex_unlock(mutex, tid);
     AWAITS(tid, skip);
 
+progress:
     goto endProducer
 }
 
@@ -328,6 +333,7 @@ endSoftirq:
     /* sched yield */
     AWAITS(tid, assert(next_tasklet == NO_BH_TASK); sys_call(SYS_PTHREAD_YIELD));
 
+progress:
     goto endSoftirq
 }
 
@@ -361,5 +367,6 @@ init
 endPendSV:
     PendSVTake();
 
+progress:
     goto endPendSV
 }
