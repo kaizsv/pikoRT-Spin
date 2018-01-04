@@ -30,7 +30,7 @@ $(OUT)_safety: $(OUT)
 $(OUT)_safety_dfs: SPINFLAGS += -DSAFETY -DNOCLAIM
 $(OUT)_safety_dfs: $(OUT)
 
-$(OUT)_np_dfs: SPINFLAGS += -DNP -DNOCLAIM -DFAIR=3
+$(OUT)_np_dfs: SPINFLAGS += -DNP -DNOCLAIM -DNFAIR=3
 $(OUT)_np_dfs: $(OUT)
 
 $(OUT)_ltl_dfs: $(OUT)
