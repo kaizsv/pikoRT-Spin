@@ -13,7 +13,12 @@
 #define NO_BH_TASK 0
 #define BH_SYSTICK 1
 
-bitmap_struct prio_tasklet;
+#define NBSOFTIRQ 1
+typedef prio_struct {
+    unsigned map : NBSOFTIRQ = 0
+    byte queue[NBSOFTIRQ * NB_WAIT_TASKS] = UNKNOWN
+};
+prio_struct prio_tasklet;
 
 // XXX: Because there are only one bottom half task in this model.
 //      To prevent redundant task asserting into the slot, check
