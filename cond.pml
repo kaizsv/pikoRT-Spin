@@ -11,6 +11,7 @@
 typedef cond_head {
     byte queue[NBCOND] = UNKNOWN
 };
+cond_head cond_list;
 
 inline find_other_thread(ret)
 {

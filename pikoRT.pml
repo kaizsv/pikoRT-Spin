@@ -209,8 +209,6 @@ proctype svc(byte tid)
 {
     byte idx, max_prio, nextUser, tempUser;
     bool retInATStack, retPolicy, del_queue_check;
-    mutex_head mutex_list;
-    cond_head cond_list;
     assert(tid == SVC);
 endSVC:
     skip;
