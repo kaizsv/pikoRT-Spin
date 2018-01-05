@@ -6,6 +6,8 @@
 #include "mutex.pml"
 #include "cond.pml"
 
+#include "pikoRT.prp"
+
 #define PENDSVREQUEST set_bit(PendSV, irq_pending)
 #define PENDSVCLEAR clear_bit(PendSV, irq_pending)
 #define GETPENDSV get_bit(PendSV, irq_pending)
@@ -294,8 +296,8 @@ endConsumer:
         :: else -> break
         od
     };
-    AWAITS(tid, data_ready = 0);
-    AWAITS(tid, sys_call(SYS_COND_SIGNAL));
+cs1:AWAITS(tid, data_ready = 0);
+cs2:AWAITS(tid, sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, tid);
     AWAITS(tid, skip);
 
@@ -320,8 +322,8 @@ endProducer:
         :: else -> break
         od
     };
-    AWAITS(tid, data_ready = 1);
-    AWAITS(tid, sys_call(SYS_COND_SIGNAL));
+cs1:AWAITS(tid, data_ready = 1);
+cs2:AWAITS(tid, sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, tid);
     AWAITS(tid, skip);
 

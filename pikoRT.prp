@@ -1,0 +1,7 @@
+#define consr_cs1 (consumer@cs1)
+#define consr_cs2 (consumer@cs2)
+#define prodr_cs1 (producer@cs1)
+#define prodr_cs2 (producer@cs2)
+
+/* warning: the order of the ltl formula must not be changed. */
+ltl mutual_exclusion { [] !((consr_cs1 || consr_cs2) && (prodr_cs1 || prodr_cs2)) }
