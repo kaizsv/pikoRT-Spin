@@ -19,6 +19,18 @@ ifdef WF # weak fairness
 RUNTIME_FLAGS += -f
 endif
 
+ifdef ME # mutual exclusion property
+RUNTIME_FLAGS += -N mutual_exclusion
+endif
+
+ifdef SF # starvation free property
+RUNTIME_FLAGS += -N starvation_free
+endif
+
+ifdef DF # deadlock free property
+RUNTIME_FLAGS += -N deadlock_free
+endif
+
 $(OUT).c:
 	$(SPIN) $(SPINFLAGS) $(TARGET)
 

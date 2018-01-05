@@ -1,0 +1,9 @@
+never  {    /* ![]!((a||b)&&(c||d)) */
+T0_init:
+	if
+	:: (1) -> goto T0_init
+	:: (consumer@cs2 && producer@cs2) || (consumer@cs2 && producer@cs1) || (consumer@cs1 && producer@cs2) || (consumer@cs1 && producer@cs2) -> goto accept_all
+	fi;
+accept_all:
+	skip
+}

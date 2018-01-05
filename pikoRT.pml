@@ -284,7 +284,7 @@ progress:
 proctype consumer(byte tid)
 {
     assert(tid == USER0);
-endConsumer:
+wantConsumer:
     mutex_lock(mutex, tid);
     AWAITS(tid, skip);
     atomic {
@@ -296,6 +296,7 @@ endConsumer:
         :: else -> break
         od
     };
+    AWAITS(tid, skip);
 cs1:AWAITS(tid, data_ready = 0);
 cs2:AWAITS(tid, sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, tid);
@@ -304,13 +305,13 @@ cs2:AWAITS(tid, sys_call(SYS_COND_SIGNAL));
 #ifdef NONP
 progress:
 #endif
-    goto endConsumer
+    goto wantConsumer
 }
 
 proctype producer(byte tid)
 {
     assert(tid == USER0 + 1);
-endProducer:
+wantProducer:
     mutex_lock(mutex, tid);
     AWAITS(tid, skip);
     atomic {
@@ -322,6 +323,7 @@ endProducer:
         :: else -> break
         od
     };
+    AWAITS(tid, skip);
 cs1:AWAITS(tid, data_ready = 1);
 cs2:AWAITS(tid, sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, tid);
@@ -330,7 +332,7 @@ cs2:AWAITS(tid, sys_call(SYS_COND_SIGNAL));
 #ifdef NONP
 progress:
 #endif
-    goto endProducer
+    goto wantProducer
 }
 
 /* softirq is in non-privileged mode */
