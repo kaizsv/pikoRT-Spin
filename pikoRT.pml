@@ -13,6 +13,7 @@
 #define GETPENDSV get_bit(PendSV, irq_pending)
 
 bit data_ready;
+byte cs;
 
 inline set_pending(irq)
 {
@@ -296,9 +297,8 @@ wantConsumer:
         :: else -> break
         od
     };
-    AWAITS(tid, skip);
-cs1:AWAITS(tid, data_ready = 0);
-cs2:AWAITS(tid, sys_call(SYS_COND_SIGNAL));
+    AWAITS(tid, cs = cs + 1; data_ready = 0);
+    AWAITS(tid, cs = cs - 1; sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, tid);
     AWAITS(tid, skip);
 
@@ -323,9 +323,8 @@ wantProducer:
         :: else -> break
         od
     };
-    AWAITS(tid, skip);
-cs1:AWAITS(tid, data_ready = 1);
-cs2:AWAITS(tid, sys_call(SYS_COND_SIGNAL));
+    AWAITS(tid, cs = cs + 1; data_ready = 1);
+    AWAITS(tid, cs = cs - 1; sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, tid);
     AWAITS(tid, skip);
 
