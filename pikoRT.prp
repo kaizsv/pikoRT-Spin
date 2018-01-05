@@ -1,7 +1,4 @@
-#define wantC (consumer@wantConsumer)
-#define wantP (producer@wantProducer)
-
 /* warning: the order of the ltl formula must not be changed. */
 ltl mutual_exclusion { [] !(cs_c && cs_p) }
-ltl starvation_free { []<>wantC -> []<>consr_cs1 && []<>wantP -> []<>prodr_cs1}
-ltl deadlock_free { []<>(wantC && wantP) -> []<>(consr_cs1 || prodr_cs1)}
+ltl starvation_free { []<>consumer@want -> []<>cs_c && []<>producer@want -> []<>cs_p }
+//ltl deadlock_free { []<>(wantC && wantP) -> []<>(consr_cs1 || prodr_cs1)}
