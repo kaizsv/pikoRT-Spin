@@ -299,8 +299,8 @@ want:
         :: else -> break
         od
     };
-    AWAITS(tid, cs_c = 1; data_ready = 0);
-    AWAITS(tid, cs_c = 0; sys_call(SYS_COND_SIGNAL));
+    AWAITS(tid, assert(!cs_p); cs_c = 1; data_ready = 0);
+    AWAITS(tid, assert(!cs_p); cs_c = 0; sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, tid);
     AWAITS(tid, skip);
 
@@ -326,8 +326,8 @@ want:
         :: else -> break
         od
     };
-    AWAITS(tid, cs_p = 1; data_ready = 1);
-    AWAITS(tid, cs_p = 0; sys_call(SYS_COND_SIGNAL));
+    AWAITS(tid, assert(!cs_c); cs_p = 1; data_ready = 1);
+    AWAITS(tid, assert(!cs_c); cs_p = 0; sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, tid);
     AWAITS(tid, skip);
 
