@@ -1,4 +1,4 @@
 /* warning: the order of the ltl formula must not be changed. */
 //ltl mutual_exclusion { [] !(cs_c && cs_p) }
-ltl starvation_free { []<>consumer@want -> []<>cs_c && []<>producer@want -> []<>cs_p }
+ltl starvation_free { ([]<>consumer@want) -> ([]<>cs_c) && ([]<>producer@want) -> ([]<>cs_p) }
 //ltl deadlock_free { []<>(consumer@want && producer@want) -> []<>(cs_c || cs_p)}

@@ -94,7 +94,7 @@ inline sched_bitmap_elect(flags, tid)
     if
     :: nextUser != IDLE_THREAD ->
         bitmap_queue_del(nextUser, get_ti_prio(nextUser), sched_bm[SCHED_BITMAP_ACTIVE], tid)
-    :: else -> assert(cond_list.queue[0] != UNKNOWN)
+    :: else -> assert(cond_list.queue[0] != UNKNOWN || mutex_list.queue[0] != UNKNOWN)
     fi;
 
     /* context switch */
