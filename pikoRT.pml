@@ -289,7 +289,6 @@ proctype consumer(byte tid)
 endConsumer:
     mutex_lock(mutex, tid);
     AWAITS(tid, skip);
-want:
     atomic {
         do
         :: !data_ready ->
@@ -316,7 +315,6 @@ proctype producer(byte tid)
 endProducer:
     mutex_lock(mutex, tid);
     AWAITS(tid, skip);
-want:
     atomic {
         do
         :: data_ready ->
