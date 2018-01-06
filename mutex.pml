@@ -16,7 +16,7 @@ mutex_head mutex_list;
 short mutex;
 
 /* local monitor for r0 in mutex.pml */
-bit local_monitor;
+byte local_monitor;
 
 inline find_first_blocking_task(ret)
 {
@@ -36,7 +36,7 @@ inline find_first_blocking_task(ret)
 
 inline sys_pthread_mutex_lock(tid)
 {
-    AWAITS(tid, mutex = mutex + 1);
+    AWAITS(tid, mutex = mutex + 1; local_monitor = tid);
     if
     :: mutex != 0 ->
         AWAITS(tid, ti[curUser - USER0].ti_private = THREAD_PRIVATE_MUTEX);
@@ -50,7 +50,7 @@ inline sys_pthread_mutex_lock(tid)
 inline sys_pthread_mutex_unlock(tid)
 {
     AWAITS(tid, max_prio = UNKNOWN);
-    AWAITS(tid, mutex = mutex - 1);
+    AWAITS(tid, mutex = mutex - 1; local_monitor = tid);
     if
     :: mutex >= 0 ->
         AWAITS(tid, find_first_blocking_task(max_prio));
@@ -78,7 +78,7 @@ inline sys_pthread_mutex_unlock(tid)
 inline mutex_lock(__mutex, tid)
 {
     /* ldrex r1, [r0] */
-    AWAITS(tid, local_monitor = 1);
+    AWAITS(tid, local_monitor = tid);
 lock_0:
     if
     :: __mutex != -1 ->
@@ -87,14 +87,17 @@ lock_0:
         AWAITS(tid, sys_call(SYS_MUTEX_LOCK))
     :: else ->
         /* strex r1, r2, [r0] */
-        if
-        :: local_monitor == 1 ->
-            AWAITS(tid, __mutex = 0; local_monitor = 0)
-        :: else ->
-            AWAITS(tid, local_monitor = 1);
-            /* bne 0b */
-            goto lock_0
-        fi
+        atomic {
+            (tid == AT) ->
+            if
+            :: local_monitor == tid ->
+                d_step { __mutex = 0; local_monitor = UNKNOWN }
+            :: else ->
+                local_monitor = tid;
+                /* bne 0b */
+                goto lock_0
+            fi
+        }
     fi
 
     /* no need to move #0 to r0 */
@@ -103,7 +106,7 @@ lock_0:
 inline mutex_unlock(__mutex, tid)
 {
     /* ldrex r1, [r0] */
-    AWAITS(tid, local_monitor = 1);
+    AWAITS(tid, local_monitor = tid);
 unlock_0:
     if
     :: __mutex != 0 ->
@@ -112,14 +115,17 @@ unlock_0:
         AWAITS(tid, sys_call(SYS_MUTEX_UNLOCK))
     :: else ->
         /* strex r1, r2, [r0] */
-        if
-        :: local_monitor == 1 ->
-            AWAITS(tid, __mutex = -1; local_monitor = 0)
-        :: else ->
-            AWAITS(tid, local_monitor = 1);
-            /* bne 0b */
-            goto unlock_0
-        fi
+        atomic {
+            (tid == AT) ->
+            if
+            :: local_monitor == tid ->
+                d_step { __mutex = -1; local_monitor = UNKNOWN }
+            :: else ->
+                local_monitor = tid;
+                /* bne 0b */
+                goto unlock_0
+            fi
+        }
     fi
 
     /* no need to move #0 to r0 */
