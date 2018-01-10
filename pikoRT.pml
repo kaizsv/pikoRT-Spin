@@ -28,9 +28,8 @@ inline clear_pending(irq)
     clear_bit(irq, irq_pending)
 }
 
-/* return maxima priority exception from exception pending status
- * if the exception has same priority, then smaller exception number
- * return first.
+/* return maxima exception priority from pending status. If the exception
+ * has same priority, return the smaller exception number first.
  * http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0552a/BABICDEB.html
  */
 inline get_max_pending(ret)
