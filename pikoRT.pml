@@ -6,7 +6,7 @@
 #include "mutex.pml"
 #include "cond.pml"
 
-//#include "pikoRT.prp"
+#include "pikoRT.prp"
 
 #define PENDSVREQUEST set_bit(PendSV, irq_pending)
 #define PENDSVCLEAR clear_bit(PendSV, irq_pending)
@@ -288,6 +288,7 @@ proctype consumer(byte tid)
 endConsumer:
     mutex_lock(mutex, tid);
     AWAITS(tid, skip);
+want:
     atomic {
         do
         :: !data_ready ->
@@ -298,6 +299,7 @@ endConsumer:
         od
     };
     AWAITS(tid, assert(!cs_p); cs_c = 1; data_ready = 0);
+inCS:
     AWAITS(tid, assert(!cs_p); cs_c = 0; sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, tid);
     AWAITS(tid, skip);
@@ -314,6 +316,7 @@ proctype producer(byte tid)
 endProducer:
     mutex_lock(mutex, tid);
     AWAITS(tid, skip);
+want:
     atomic {
         do
         :: data_ready ->
@@ -324,6 +327,7 @@ endProducer:
         od
     };
     AWAITS(tid, assert(!cs_c); cs_p = 1; data_ready = 1);
+inCS:
     AWAITS(tid, assert(!cs_c); cs_p = 0; sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, tid);
     AWAITS(tid, skip);
