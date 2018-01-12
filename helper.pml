@@ -18,7 +18,7 @@ inline find_first_bit(addr, ret, pri_min)
     ret = 0;
     for (idx: 0 .. pri_min) {
         if
-        :: (addr & (1 << idx)) == 0 -> ret = ret + 1;
+        :: (addr & (1 << idx)) == 0 -> ret = ret + 1
         :: else -> break
         fi
     }
@@ -49,7 +49,7 @@ inline list_del(del, stack, base, size)
         :: else ->
             if
             :: del_queue_check ->
-                stack.queue[base + idx - 1] = stack.queue[base + idx]
+                stack.queue[base + idx - 1] = stack.queue[base + idx];
                 if
                 :: idx == (size - 1) ->
                     stack.queue[base + idx] = UNKNOWN
