@@ -19,18 +19,6 @@ ifdef WF # weak fairness
 RUNTIME_FLAGS += -f
 endif
 
-ifdef ME # mutual exclusion property
-RUNTIME_FLAGS += -N mutual_exclusion
-endif
-
-ifdef SF # starvation free property
-RUNTIME_FLAGS += -N starvation_free
-endif
-
-ifdef DF # deadlock free property
-RUNTIME_FLAGS += -N deadlock_free
-endif
-
 $(OUT).c:
 	$(SPIN) $(SPINFLAGS) $(TARGET)
 
@@ -61,6 +49,12 @@ nprogress_dfs_full: clean $(OUT)_np_dfs
 
 acceptance_ltl_full: clean $(OUT)_ltl_dfs
 	./$(OUT) $(RUNTIME_FLAGS) -a
+
+ltl_starvation_free: RUNTIME_FLAGS += -N starvation_free
+ltl_starvation_free: acceptance_ltl_full
+
+ltl_deadlock_free: RUNTIME_FLAGS += -N deadlock_free
+ltl_deadlock_free: acceptance_ltl_full
 
 error_trail:
 	$(SPIN) -t -p -v $(TARGET)
