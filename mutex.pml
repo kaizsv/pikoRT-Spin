@@ -12,7 +12,7 @@ typedef mutex_head {
 };
 mutex_head mutex_list;
 
-/* -1: unlocked, 0: locked, poritive: locked, possible waiters */
+/* -1: unlocked, 0: locked, positive: locked, possible waiters */
 short mutex;
 
 /* local monitor for r0 in mutex.pml */
