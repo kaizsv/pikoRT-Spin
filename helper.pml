@@ -33,7 +33,7 @@ inline list_add_tail(new, stack, base, size)
             stack.queue[base + idx] = new; break
         :: else ->
             /* increase size if fail */
-            assert(idx < (size - 1) || stack.queue[base + idx] != new)
+            assert(idx < (size - 1) && stack.queue[base + idx] != new)
         fi
     }
     idx = 0
