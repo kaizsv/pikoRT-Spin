@@ -40,9 +40,9 @@
 #ifndef _VARIABLES_
 #define _VARIABLES_
 
-mtype = { DEFAULT_SYS, SYS_MUTEX_LOCK, SYS_MUTEX_UNLOCK, SYS_PTHREAD_YIELD,
-          SYS_COND_WAIT, SYS_COND_SIGNAL };
-mtype svc_type = DEFAULT_SYS;
+mtype:svc_t = { DEFAULT_SYS, SYS_MUTEX_LOCK, SYS_MUTEX_UNLOCK, SYS_PTHREAD_YIELD,
+                SYS_COND_WAIT, SYS_COND_SIGNAL };
+mtype:svc_t svc_type = DEFAULT_SYS;
 
 byte irq_pending;
 byte irq_prio[NBINTS + 2];
