@@ -35,6 +35,7 @@ $(OUT)_np_dfs: SPINFLAGS += -DNONP
 $(OUT)_np_dfs: COMPILERTIME_FLAGS += -DNP -DNOCLAIM -DNFAIR=3
 $(OUT)_np_dfs: $(OUT)
 
+$(OUT)_ltl_dfs: SPINFLAGS += -DLTL
 $(OUT)_ltl_dfs: $(OUT)
 
 safety_bfs: MLIMIT = 1024

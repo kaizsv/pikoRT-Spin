@@ -6,7 +6,9 @@
 #include "mutex.pml"
 #include "cond.pml"
 
+#ifdef LTL
 #include "pikoRT.prp"
+#endif
 
 #define PENDSVREQUEST set_bit(PendSV, irq_pending)
 #define PENDSVCLEAR clear_bit(PendSV, irq_pending)
