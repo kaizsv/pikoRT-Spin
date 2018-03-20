@@ -72,6 +72,7 @@ inline sys_call(__svc_type)
 
     /* rendezvous chan will block the process, need to place outside d_step */
     svc_chan ! __svc_type;
+    (tid == AT)
 }
 
 inline switch_to(proc)

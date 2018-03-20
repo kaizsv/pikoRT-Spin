@@ -294,8 +294,7 @@ want:
         do
         :: !data_ready ->
             (tid == AT) -> sys_call(SYS_COND_WAIT);
-            (tid == AT) -> sys_call(SYS_MUTEX_LOCK);
-            (tid == AT)
+            (tid == AT) -> sys_call(SYS_MUTEX_LOCK)
         :: else -> break
         od
     };
@@ -322,8 +321,7 @@ want:
         do
         :: data_ready ->
             (tid == AT) -> sys_call(SYS_COND_WAIT);
-            (tid == AT) -> sys_call(SYS_MUTEX_LOCK);
-            (tid == AT)
+            (tid == AT) -> sys_call(SYS_MUTEX_LOCK)
         :: else -> break
         od
     };
