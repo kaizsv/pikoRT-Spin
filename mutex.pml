@@ -87,8 +87,7 @@ lock_0:
         A_AWAITS(tid, sys_call(SYS_MUTEX_LOCK))
     :: else ->
         /* strex r1, r2, [r0] */
-        atomic {
-            (tid == AT) ->
+        A_AWAITS(tid,
             if
             :: local_monitor == tid ->
                 d_step { __mutex = 0; local_monitor = UNKNOWN }
@@ -97,7 +96,7 @@ lock_0:
                 /* bne 0b */
                 goto lock_0
             fi
-        }
+        )
     fi
 
     /* no need to move #0 to r0 */
@@ -115,8 +114,7 @@ unlock_0:
         A_AWAITS(tid, sys_call(SYS_MUTEX_UNLOCK))
     :: else ->
         /* strex r1, r2, [r0] */
-        atomic {
-            (tid == AT) ->
+        A_AWAITS(tid,
             if
             :: local_monitor == tid ->
                 d_step { __mutex = -1; local_monitor = UNKNOWN }
@@ -125,7 +123,7 @@ unlock_0:
                 /* bne 0b */
                 goto unlock_0
             fi
-        }
+        )
     fi
 
     /* no need to move #0 to r0 */

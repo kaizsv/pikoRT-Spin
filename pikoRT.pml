@@ -290,14 +290,14 @@ endConsumer:
     mutex_lock(mutex, tid);
     AWAITS(tid, skip);
 want:
-    atomic {
+    A_AWAITS(tid,
         do
         :: !data_ready ->
-            (tid == AT) -> sys_call(SYS_COND_WAIT);
-            (tid == AT) -> sys_call(SYS_MUTEX_LOCK)
+            sys_call(SYS_COND_WAIT);
+            sys_call(SYS_MUTEX_LOCK)
         :: else -> break
         od
-    };
+    );
     AWAITS(tid, assert(!cs_p); cs_c = 1; data_ready = 0);
 inCS:
     A_AWAITS(tid, assert(!cs_p); cs_c = 0; sys_call(SYS_COND_SIGNAL));
@@ -317,14 +317,14 @@ endProducer:
     mutex_lock(mutex, tid);
     AWAITS(tid, skip);
 want:
-    atomic {
+    A_AWAITS(tid,
         do
         :: data_ready ->
-            (tid == AT) -> sys_call(SYS_COND_WAIT);
-            (tid == AT) -> sys_call(SYS_MUTEX_LOCK)
+            sys_call(SYS_COND_WAIT);
+            sys_call(SYS_MUTEX_LOCK)
         :: else -> break
         od
-    };
+    );
     AWAITS(tid, assert(!cs_c); cs_p = 1; data_ready = 1);
 inCS:
     A_AWAITS(tid, assert(!cs_c); cs_p = 0; sys_call(SYS_COND_SIGNAL));
