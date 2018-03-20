@@ -245,6 +245,7 @@ proctype pendsv(byte tid)
     bool retInATStack, retPolicy, del_queue_check;
     assert(tid == PendSV);
 endPendSV:
+    PendSVTake();
     sched_elect(SCHED_OPT_TICK, tid);
     AWAITS(tid, IRet());
 
@@ -380,13 +381,5 @@ init
             fi
         }
         idx = 0
-    };
-
-endPendSV:
-    PendSVTake();
-
-#ifdef NONP
-progress:
-#endif
-    goto endPendSV
+    }
 }
