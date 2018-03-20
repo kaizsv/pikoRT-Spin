@@ -214,9 +214,10 @@ proctype svc(byte tid)
 {
     byte idx, max_prio, nextUser, tempUser;
     bool retInATStack, retPolicy, del_queue_check;
+    mtype:svc_t svc_type;
     assert(tid == SVC);
 endSVC:
-    (tid == AT);
+    atomic { svc_chan ? svc_type; assert(tid == AT) };
     if
     :: svc_type == SYS_MUTEX_LOCK ->
         sys_pthread_mutex_lock(tid)
@@ -229,9 +230,7 @@ endSVC:
     :: svc_type == SYS_PTHREAD_YIELD ->
         sched_enqueue(curUser, tid);
         sched_elect(SCHED_OPT_NONE, tid)
-    :: else -> assert(false)
     fi;
-    AWAITS(tid, svc_type = DEFAULT_SYS);
     AWAITS(tid, IRet());
 
 #ifdef NONP
@@ -302,7 +301,7 @@ want:
     };
     AWAITS(tid, assert(!cs_p); cs_c = 1; data_ready = 0);
 inCS:
-    AWAITS(tid, assert(!cs_p); cs_c = 0; sys_call(SYS_COND_SIGNAL));
+    A_AWAITS(tid, assert(!cs_p); cs_c = 0; sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, tid);
     AWAITS(tid, skip);
 
@@ -330,7 +329,7 @@ want:
     };
     AWAITS(tid, assert(!cs_c); cs_p = 1; data_ready = 1);
 inCS:
-    AWAITS(tid, assert(!cs_c); cs_p = 0; sys_call(SYS_COND_SIGNAL));
+    A_AWAITS(tid, assert(!cs_c); cs_p = 0; sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, tid);
     AWAITS(tid, skip);
 
@@ -350,7 +349,7 @@ endSoftirq:
     tasklet_action(next_tasklet, tid);
     /* softirqd thread should not return */
     /* sched yield */
-    AWAITS(tid, assert(next_tasklet == NO_BH_TASK); sys_call(SYS_PTHREAD_YIELD));
+    A_AWAITS(tid, assert(next_tasklet == NO_BH_TASK); sys_call(SYS_PTHREAD_YIELD));
 
 #ifdef NONP
 progress:

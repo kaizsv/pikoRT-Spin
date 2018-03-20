@@ -35,14 +35,15 @@
 //#define FOR_CTXT_IDX for (idx: 0 .. (NBCTXT - 1))
 #define FOR_ATTOP_IDX for (idx: 0 .. ATTop)
 
-#define AWAITS(pid, C) d_step { (pid == AT) -> C }
+#define AWAITS(pid, C)   d_step { (pid == AT) -> C }
+#define A_AWAITS(pid, C) atomic { (pid == AT) -> C }
 
 #ifndef _VARIABLES_
 #define _VARIABLES_
 
-mtype:svc_t = { DEFAULT_SYS, SYS_MUTEX_LOCK, SYS_MUTEX_UNLOCK, SYS_PTHREAD_YIELD,
+mtype:svc_t = { SYS_MUTEX_LOCK, SYS_MUTEX_UNLOCK, SYS_PTHREAD_YIELD,
                 SYS_COND_WAIT, SYS_COND_SIGNAL };
-mtype:svc_t svc_type = DEFAULT_SYS;
+chan svc_chan = [0] of { mtype:svc_t };
 
 byte irq_pending;
 byte irq_prio[NBINTS + 2];
@@ -58,14 +59,19 @@ bit ghost_softirq;
 
 inline sys_call(__svc_type)
 {
-    assert(ATTop < 0 && ((irq_pending >> 2) == 0) && ghost_direct_AT == 0);
-    svc_type = __svc_type;
+    d_step {
+        assert(ATTop < 0 && ((irq_pending >> 2) == 0));
+        assert(ghost_direct_AT == 0);
 
-    /* push_and_change_AT(SVC) is placed in pikoRT.pml, write directly */
-    ATTop = ATTop + 1;
-    assert(ATTop < NBATSTACK);
-    ATStack[ATTop] = AT;
-    AT = SVC
+        /* push_and_change_AT(SVC) is placed in pikoRT.pml, write directly */
+        ATTop = ATTop + 1;
+        assert(ATTop < NBATSTACK);
+        ATStack[ATTop] = AT;
+        AT = SVC
+    };
+
+    /* rendezvous chan will block the process, need to place outside d_step */
+    svc_chan ! __svc_type;
 }
 
 inline switch_to(proc)

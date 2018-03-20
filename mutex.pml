@@ -84,7 +84,7 @@ lock_0:
     :: __mutex != -1 ->
         /* bne 1f */
         /* svc to #SYS_PTHREAD_MUTEX_LOCK */
-        AWAITS(tid, sys_call(SYS_MUTEX_LOCK))
+        A_AWAITS(tid, sys_call(SYS_MUTEX_LOCK))
     :: else ->
         /* strex r1, r2, [r0] */
         atomic {
@@ -112,7 +112,7 @@ unlock_0:
     :: __mutex != 0 ->
         /* bne 1f */
         /* svc to #SYS_PTHREAD_MUTEX_UNLOCK */
-        AWAITS(tid, sys_call(SYS_MUTEX_UNLOCK))
+        A_AWAITS(tid, sys_call(SYS_MUTEX_UNLOCK))
     :: else ->
         /* strex r1, r2, [r0] */
         atomic {
