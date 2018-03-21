@@ -359,7 +359,6 @@ progress:
 init
 {
     byte idx;
-    bool retInATStack;
 
     d_step {
         system_initialize();
