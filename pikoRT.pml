@@ -301,8 +301,8 @@ want:
         :: else -> break
         od
     );
-    AWAITS(evalPID, assert(!cs_p); cs_c = 1; data_ready = 0);
 inCS:
+    AWAITS(evalPID, assert(!cs_p); cs_c = 1; data_ready = 0);
     A_AWAITS(evalPID, assert(!cs_p); cs_c = 0; sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, evalPID);
     AWAITS(evalPID, skip);
@@ -328,8 +328,8 @@ want:
         :: else -> break
         od
     );
-    AWAITS(evalPID, assert(!cs_c); cs_p = 1; data_ready = 1);
 inCS:
+    AWAITS(evalPID, assert(!cs_c); cs_p = 1; data_ready = 1);
     A_AWAITS(evalPID, assert(!cs_c); cs_p = 0; sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, evalPID);
     AWAITS(evalPID, skip);
