@@ -234,9 +234,6 @@ endSVC:
     fi;
     AWAITS(evalPID, IRet());
 
-#ifdef NONP
-progress:
-#endif
     goto endSVC
 }
 
@@ -250,9 +247,6 @@ endPendSV:
     sched_elect(SCHED_OPT_TICK, evalPID);
     AWAITS(evalPID, IRet());
 
-#ifdef NONP
-progress:
-#endif
     goto endPendSV
 }
 
@@ -277,9 +271,6 @@ endInts:
     fi;
     AWAITS(evalPID, IRet());
 
-#ifdef NONP
-progress:
-#endif
     goto endInts
 }
 
@@ -304,9 +295,6 @@ inCS:
     A_AWAITS(evalPID, assert(!cs_p); cs_c = 0; sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, evalPID);
 
-#ifdef NONP
-progress:
-#endif
     goto endConsumer
 }
 
@@ -329,9 +317,6 @@ inCS:
     A_AWAITS(evalPID, assert(!cs_c); cs_p = 0; sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, evalPID);
 
-#ifdef NONP
-progress:
-#endif
     goto endProducer
 }
 
@@ -347,9 +332,6 @@ endSoftirq:
     /* sched yield */
     A_AWAITS(evalPID, assert(next_tasklet == NO_BH_TASK); sys_call(SYS_PTHREAD_YIELD));
 
-#ifdef NONP
-progress:
-#endif
     goto endSoftirq
 }
 
