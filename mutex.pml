@@ -15,7 +15,7 @@ typedef mutex_head {
 short mutex;
 
 /* local monitor for r0 in mutex.pml */
-byte local_monitor;
+bit local_monitor;
 
 inline find_first_blocking_task(ret)
 {
@@ -35,9 +35,9 @@ inline find_first_blocking_task(ret)
 
 inline sys_pthread_mutex_lock(tid)
 {
-    AWAITS(tid, mutex = mutex + 1; local_monitor = tid);
+    AWAITS(tid, assert(mutex >= -1); mutex = mutex + 1);
     if
-    :: mutex != 0 ->
+    :: mutex > 0 ->
         AWAITS(tid, ti[curUser - USER0].ti_private = THREAD_PRIVATE_MUTEX);
         AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_BLOCKED);
         AWAITS(tid, list_add_tail(curUser, mutex_list, 0, NBMUTEX));
@@ -49,7 +49,7 @@ inline sys_pthread_mutex_lock(tid)
 inline sys_pthread_mutex_unlock(tid)
 {
     AWAITS(tid, max_prio = UNKNOWN);
-    AWAITS(tid, mutex = mutex - 1; local_monitor = tid);
+    AWAITS(tid, assert(mutex > -1); mutex = mutex - 1);
     if
     :: mutex >= 0 ->
         AWAITS(tid, find_first_blocking_task(max_prio));
@@ -71,61 +71,66 @@ inline sys_pthread_mutex_unlock(tid)
     fi
 }
 
-/* reset local_monitor to 1 in condition statement to
- * prevent redundant skip condiditon in PROMELA model
- * (jump into d_step) */
 inline mutex_lock(__mutex, tid)
 {
-    /* ldrex r1, [r0] */
-    AWAITS(tid, local_monitor = tid);
-lock_0:
-    if
-    :: __mutex != -1 ->
-        /* bne 1f */
-        /* svc to #SYS_PTHREAD_MUTEX_LOCK */
-        A_AWAITS(tid, sys_call(SYS_MUTEX_LOCK))
-    :: else ->
-        /* strex r1, r2, [r0] */
-        A_AWAITS(tid,
+    /* the atomic (A_AWAITS) in 'do' is to simulate the 'dmb' instruction */
+    do                                          // lock_0 loop
+    :: A_AWAITS(tid,
+        local_monitor = 1;                      // ldrex r1, [r0]
+        if                                      // teq r1, #-1
+        :: __mutex != -1 ->
+            goto lock_1                         // bne 1f
+        :: else ->                              // strex r1, r2, [r0]
             if
-            :: local_monitor == tid ->
-                d_step { __mutex = 0; local_monitor = UNKNOWN }
-            :: else ->
-                local_monitor = tid;
-                /* bne 0b */
-                goto lock_0
+            :: local_monitor == 1 ->            // 'strex' success
+                d_step {
+                    assert(__mutex == -1);
+                    __mutex = 0; local_monitor = 0
+                }; goto lock_leave
+            :: else                             // bne 0b
             fi
-        )
-    fi
-
-    /* no need to move #0 to r0 */
+        fi
+       )
+    od;
+lock_1:
+    // itt ne
+    // movne r1, #SYS_PTHREAD_MUTEX_LOCK
+    // svcne #1
+    A_AWAITS(tid, sys_call(SYS_MUTEX_LOCK));
+lock_leave:
+    // bx lr
+    A_AWAITS(tid, local_monitor = 0)
 }
 
 inline mutex_unlock(__mutex, tid)
 {
-    /* ldrex r1, [r0] */
-    AWAITS(tid, local_monitor = tid);
-unlock_0:
-    if
-    :: __mutex != 0 ->
-        /* bne 1f */
-        /* svc to #SYS_PTHREAD_MUTEX_UNLOCK */
-        A_AWAITS(tid, sys_call(SYS_MUTEX_UNLOCK))
-    :: else ->
-        /* strex r1, r2, [r0] */
-        A_AWAITS(tid,
+    /* the atomic (A_AWAITS) in 'do' is to simulate the 'dmb' instruction */
+    do                                          // unlock_0 loop
+    :: A_AWAITS(tid,
+        local_monitor = 1;                      // ldrex r1, [r0]
+        if                                      // teq r1, #0
+        :: __mutex != 0 ->
+            goto unlock_1                       // bne 1f
+        :: else ->                              // strex r1, r2, [r0]
             if
-            :: local_monitor == tid ->
-                d_step { __mutex = -1; local_monitor = UNKNOWN }
-            :: else ->
-                local_monitor = tid;
-                /* bne 0b */
-                goto unlock_0
+            :: local_monitor == 1 ->            // 'strex' success
+                d_step {
+                    assert(__mutex == 0);
+                    __mutex = -1; local_monitor = 0
+                }; goto unlock_leave
+            :: else                             // bne 0b
             fi
-        )
-    fi
-
-    /* no need to move #0 to r0 */
+        fi
+       )
+    od;
+unlock_1:
+    // itt ne
+    // movne r1, #SYS_PTHREAD_MUTEX_UNLOCK
+    // svcne #1
+    A_AWAITS(tid, sys_call(SYS_MUTEX_UNLOCK));
+unlock_leave:
+    // bx lr
+    A_AWAITS(tid, local_monitor = 0)
 }
 
 inline mutex_initialize()
