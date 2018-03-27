@@ -210,28 +210,28 @@ inline IRet()
  * all processes
  * ------------ */
 
-proctype svc(byte tid)
+proctype svc()
 {
     byte idx, max_prio, nextUser, tempUser;
     bool retInATStack, retPolicy, del_queue_check;
     mtype:svc_t svc_type;
-    assert(tid == SVC);
+    assert(evalPID == SVC);
 endSVC:
-    atomic { svc_chan ? svc_type; assert(tid == AT) };
+    atomic { svc_chan ? svc_type; assert(evalPID == AT) };
     if
     :: svc_type == SYS_MUTEX_LOCK ->
-        sys_pthread_mutex_lock(tid)
+        sys_pthread_mutex_lock(evalPID)
     :: svc_type == SYS_MUTEX_UNLOCK ->
-        sys_pthread_mutex_unlock(tid)
+        sys_pthread_mutex_unlock(evalPID)
     :: svc_type == SYS_COND_WAIT ->
-        sys_pthread_cond_wait(tid)
+        sys_pthread_cond_wait(evalPID)
     :: svc_type == SYS_COND_SIGNAL ->
-        sys_pthread_cond_signal(tid)
+        sys_pthread_cond_signal(evalPID)
     :: svc_type == SYS_PTHREAD_YIELD ->
-        sched_enqueue(curUser, tid);
-        sched_elect(SCHED_OPT_NONE, tid)
+        sched_enqueue(curUser, evalPID);
+        sched_elect(SCHED_OPT_NONE, evalPID)
     fi;
-    AWAITS(tid, IRet());
+    AWAITS(evalPID, IRet());
 
 #ifdef NONP
 progress:
@@ -239,15 +239,15 @@ progress:
     goto endSVC
 }
 
-proctype pendsv(byte tid)
+proctype pendsv()
 {
     byte idx, max_prio, nextUser, tempUser;
     bool retInATStack, retPolicy, del_queue_check;
-    assert(tid == PendSV);
+    assert(evalPID == PendSV);
 endPendSV:
     PendSVTake();
-    sched_elect(SCHED_OPT_TICK, tid);
-    AWAITS(tid, IRet());
+    sched_elect(SCHED_OPT_TICK, evalPID);
+    AWAITS(evalPID, IRet());
 
 #ifdef NONP
 progress:
@@ -255,26 +255,26 @@ progress:
     goto endPendSV
 }
 
-proctype interrupts(byte tid)
+proctype interrupts()
 {
     byte idx, max_prio;
     bool retInATStack, retPolicy;
-    assert(PendSV < tid && tid < USER0);
+    assert(PendSV < evalPID && evalPID < USER0);
 endInts:
-    ITake(tid);
+    ITake(evalPID);
     if
-    :: tid == 2 ->
+    :: evalPID == 2 ->
         /* the first interrupt is systick */
         /* TODO: future work for timer */
-        tasklet_schedule(BH_SYSTICK, TIMER_SOFTIRQ_PRIO, tid);
-        AWAITS(tid, PENDSVREQUEST)
+        tasklet_schedule(BH_SYSTICK, TIMER_SOFTIRQ_PRIO, evalPID);
+        AWAITS(evalPID, PENDSVREQUEST)
     :: else
         /* using stm32_uartx_isr() as interrupt example
          * this isr will not influence the scheduling behavior
          * only updates charactor buffer and calls an empty callback func */
-        AWAITS(tid, skip)
+        AWAITS(evalPID, skip)
     fi;
-    AWAITS(tid, IRet());
+    AWAITS(evalPID, IRet());
 
 #ifdef NONP
 progress:
@@ -284,14 +284,14 @@ progress:
 
 // TODO: use macro to define users task
 
-proctype consumer(byte tid)
+proctype consumer()
 {
-    assert(tid == USER0);
+    assert(USER0 <= evalPID && evalPID < SOFTIRQ);
 endConsumer:
-    mutex_lock(mutex, tid);
-    AWAITS(tid, skip);
+    mutex_lock(mutex, evalPID);
+    AWAITS(evalPID, skip);
 want:
-    A_AWAITS(tid,
+    A_AWAITS(evalPID,
         do
         :: !data_ready ->
             sys_call(SYS_COND_WAIT);
@@ -299,11 +299,11 @@ want:
         :: else -> break
         od
     );
-    AWAITS(tid, assert(!cs_p); cs_c = 1; data_ready = 0);
+    AWAITS(evalPID, assert(!cs_p); cs_c = 1; data_ready = 0);
 inCS:
-    A_AWAITS(tid, assert(!cs_p); cs_c = 0; sys_call(SYS_COND_SIGNAL));
-    mutex_unlock(mutex, tid);
-    AWAITS(tid, skip);
+    A_AWAITS(evalPID, assert(!cs_p); cs_c = 0; sys_call(SYS_COND_SIGNAL));
+    mutex_unlock(mutex, evalPID);
+    AWAITS(evalPID, skip);
 
 #ifdef NONP
 progress:
@@ -311,14 +311,14 @@ progress:
     goto endConsumer
 }
 
-proctype producer(byte tid)
+proctype producer()
 {
-    assert(tid == USER0 + 1);
+    assert(USER0 <= evalPID && evalPID < SOFTIRQ);
 endProducer:
-    mutex_lock(mutex, tid);
-    AWAITS(tid, skip);
+    mutex_lock(mutex, evalPID);
+    AWAITS(evalPID, skip);
 want:
-    A_AWAITS(tid,
+    A_AWAITS(evalPID,
         do
         :: data_ready ->
             sys_call(SYS_COND_WAIT);
@@ -326,11 +326,11 @@ want:
         :: else -> break
         od
     );
-    AWAITS(tid, assert(!cs_c); cs_p = 1; data_ready = 1);
+    AWAITS(evalPID, assert(!cs_c); cs_p = 1; data_ready = 1);
 inCS:
-    A_AWAITS(tid, assert(!cs_c); cs_p = 0; sys_call(SYS_COND_SIGNAL));
-    mutex_unlock(mutex, tid);
-    AWAITS(tid, skip);
+    A_AWAITS(evalPID, assert(!cs_c); cs_p = 0; sys_call(SYS_COND_SIGNAL));
+    mutex_unlock(mutex, evalPID);
+    AWAITS(evalPID, skip);
 
 #ifdef NONP
 progress:
@@ -339,16 +339,16 @@ progress:
 }
 
 /* softirq is in non-privileged mode */
-proctype softirq(byte tid)
+proctype softirq()
 {
     byte idx, max_prio, next_tasklet = NO_BH_TASK;
     bool del_queue_check;
-    assert(tid == SOFTIRQ);
+    assert(evalPID == SOFTIRQ);
 endSoftirq:
-    tasklet_action(next_tasklet, tid);
+    tasklet_action(next_tasklet, evalPID);
     /* softirqd thread should not return */
     /* sched yield */
-    A_AWAITS(tid, assert(next_tasklet == NO_BH_TASK); sys_call(SYS_PTHREAD_YIELD));
+    A_AWAITS(evalPID, assert(next_tasklet == NO_BH_TASK); sys_call(SYS_PTHREAD_YIELD));
 
 #ifdef NONP
 progress:
@@ -367,18 +367,19 @@ init
     };
 
     atomic {
-        run svc(SVC);
-        run pendsv(PendSV);
-        run softirq(SOFTIRQ);
-        run consumer(USER0);
-        run producer(5);
+        run svc();
+        run pendsv();
         for (idx: 2 .. (USER0 - 1)) {
+            run interrupts()
+        }
+        idx = 0;
+        for (idx: USER0 .. (USER0 + NBUSERS - 1)) {
             if
-            :: PendSV < idx && idx < USER0 ->
-                /* interrupt handlers */
-                run interrupts(idx)
+            :: idx == USER0 -> run consumer()
+            :: idx == (USER0 + 1) -> run producer()
             fi
         }
-        idx = 0
+        idx = 0;
+        run softirq()
     }
 }

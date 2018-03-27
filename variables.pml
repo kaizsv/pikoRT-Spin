@@ -35,6 +35,7 @@
 //#define FOR_CTXT_IDX for (idx: 0 .. (NBCTXT - 1))
 #define FOR_ATTOP_IDX for (idx: 0 .. ATTop)
 
+#define evalPID (_pid - 1)
 #define AWAITS(pid, C)   d_step { (pid == AT) -> C }
 #define A_AWAITS(pid, C) atomic { (pid == AT) -> C }
 
@@ -72,7 +73,7 @@ inline sys_call(__svc_type)
 
     /* rendezvous chan will block the process, need to place outside d_step */
     svc_chan ! __svc_type;
-    (tid == AT)
+    (evalPID == AT)
 }
 
 inline switch_to(proc)
