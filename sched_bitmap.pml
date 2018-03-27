@@ -94,32 +94,34 @@ inline sched_bitmap_elect(flags, tid)
     if
     :: nextUser != IDLE_THREAD ->
         bitmap_queue_del(nextUser, get_ti_prio(nextUser), sched_bm[SCHED_BITMAP_ACTIVE], tid)
-    :: else -> assert(cond_list.queue[0] != UNKNOWN || mutex_list.queue[0] != UNKNOWN)
+    :: else -> assert(flags == SCHED_OPT_TICK)
     fi;
 
-    /* context switch */
-    if
+//    if
 //    TODO: thread exit has not been implemented yet,
 //          comment to prevent unreached statement
 //    :: flags == SCHED_OPT_RESTORE_ONLY ->
 //        /* restore only */
 //        AWAITS(tid, curUser = nextUser);
 //        AWAITS(tid, thread_restore(curUser))
-    :: nextUser == IDLE_THREAD || nextUser == curUser ->
-        skip //assert(flags != SCHED_OPT_RESTORE_ONLY)
-    :: else ->
+//    :: else ->
         if
-        :: flags == SCHED_OPT_TICK ->
+        :: flags == SCHED_OPT_TICK && curUser != IDLE_THREAD ->
             /* task enqueue to SCHED_BITMAP_EXPIRE */
             AWAITS(tid, add_tail(curUser, sched_bm[SCHED_BITMAP_EXPIRE], get_ti_prio(curUser), NB_WAIT_TASKS));
             AWAITS(tid, set_bit(get_ti_prio(curUser), sched_bm[SCHED_BITMAP_EXPIRE].map));
             AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_EXPIRED)
         :: else
         fi;
-        AWAITS(tid, switch_to(curUser));
-        AWAITS(tid, curUser = nextUser);
-        AWAITS(tid, thread_restore(curUser))
-    fi
+        if
+        :: nextUser == curUser -> skip
+        :: else ->
+            /* context switch */
+            AWAITS(tid, switch_to(curUser));
+            AWAITS(tid, curUser = nextUser);
+            AWAITS(tid, thread_restore(curUser))
+        fi
+//    fi
 }
 
 #endif /* _SCHED_BITMAP_ */
