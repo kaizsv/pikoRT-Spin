@@ -211,7 +211,7 @@ inline IRet()
 
 proctype svc()
 {
-    byte idx, max_prio, nextUser, tempUser;
+    byte idx, max_prio, nextUser;
     bool retInATStack, retPolicy, del_queue_check;
     mutex_head mutex_list;
     cond_head cond_list;
@@ -242,7 +242,7 @@ progress:
 
 proctype pendsv()
 {
-    byte idx, max_prio, nextUser, tempUser;
+    byte idx, max_prio, nextUser;
     bool retInATStack, retPolicy, del_queue_check;
     assert(evalPID == PendSV);
 endPendSV:

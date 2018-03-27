@@ -50,6 +50,21 @@ inline find_next_thread(bm, ret, tid)
     fi
 }
 
+/* this compares the expire runqueue with the nextUser (active runqueue)
+ * to prevent the usage of tempUser variable. */
+inline compare_runqueues_to_swap(tid)
+{
+    AWAITS(tid, find_first_bit(sched_bm[SCHED_BITMAP_EXPIRE].map, max_prio, PRI_MIN));
+
+    /* if expire runqueue has elements, the max_prio will not be NBITMAP_BIT */
+    if
+    :: nextUser == IDLE_THREAD && max_prio != NBITMAP_BIT ->
+        AWAITS(tid, swap_sched_state_map());
+        find_next_thread(sched_bm[SCHED_BITMAP_ACTIVE], nextUser, tid)
+    :: else
+    fi
+}
+
 inline sched_bitmap_enqueue(new, prio, tid)
 {
     AWAITS(tid, add_tail(new, sched_bm[SCHED_BITMAP_ACTIVE], prio, NB_WAIT_TASKS));
@@ -82,13 +97,7 @@ inline sched_bitmap_elect(flags, tid)
 
     /* check each thrd timeslice in active queue
      * if necessary swap active and expire queue */
-    find_next_thread(sched_bm[SCHED_BITMAP_EXPIRE], tempUser, tid);
-    if
-    :: (nextUser == IDLE_THREAD && tempUser != IDLE_THREAD) ->
-        AWAITS(tid, swap_sched_state_map());
-        find_next_thread(sched_bm[SCHED_BITMAP_ACTIVE], nextUser, tid)
-    :: else
-    fi;
+    compare_runqueues_to_swap(tid);
 
     /* idle thread */
     if
