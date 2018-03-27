@@ -38,7 +38,9 @@ inline get_max_pending(ret)
     /* SVC will not be pending, and pending of PendSV has no effect here */
     for (idx: 2 .. (USER0 - 1)) {
         if
-        :: get_bit(idx, irq_pending) && (irq_prio[idx] < ret) ->
+        :: get_bit(idx, irq_pending) && ret == UNKNOWN ->
+            ret = idx
+        :: get_bit(idx, irq_pending) && (irq_prio[idx] < irq_prio[ret]) ->
             ret = idx
         :: else
         fi
