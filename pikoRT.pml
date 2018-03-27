@@ -171,7 +171,6 @@ inline PendSVTake()
     :: atomic {
         d_step {
             inATStack(PendSV, retInATStack)
-            //interrupt_policy(PendSV, AT, retPolicy)
         };
         if
         :: GETPENDSV && !retInATStack && (AT >= USER0) ->

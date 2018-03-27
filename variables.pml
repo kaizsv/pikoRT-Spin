@@ -56,7 +56,6 @@ byte curUser;
 //int ctxt_ATTop[NBUSERS + 1];
 
 byte ghost_direct_AT;
-bit ghost_softirq;
 
 inline sys_call(__svc_type)
 {
@@ -118,6 +117,9 @@ inline system_initialize()
         fi
     }
     idx = 0;
+
+    irq_pending = 0;
+    ghost_direct_AT = 0
 
     /* XXX setting context
      * Strictly speaking, the ctxt_ATStack need to store the whole ATStack.

@@ -7,6 +7,11 @@
 #include "sched_bitmap.pml"
 //#include "systick.pml"
 
+/* irq_pending[0] is useless, let ir records the softirq run bit */
+#define GET_SOFTIRQRUN   get_bit(0, irq_pending)
+#define SET_SOFTIRQRUN   set_bit(0, irq_pending)
+#define CLEAR_SOFTIRQRUN clear_bit(0, irq_pending)
+
 #define PRIO_TASKLET_MINPRIO 31
 #define TIMER_SOFTIRQ_PRIO 0
 
@@ -40,9 +45,9 @@ inline tasklet_schedule(task, prio, tid)
 
     /* raise softirq */
     if
-    :: !ghost_softirq ->
+    :: !GET_SOFTIRQRUN ->
         sched_enqueue(SOFTIRQ, tid);
-        AWAITS(tid, ghost_softirq = 1)
+        AWAITS(tid, SET_SOFTIRQRUN)
     :: else
     fi
 }
@@ -52,7 +57,7 @@ inline tasklet_action(ret, tid)
     do
     :: if
        :: prio_tasklet.map != 0 ->
-           AWAITS(tid, find_first_bit(prio_tasklet.map, max_prio, PRI_MIN));
+           AWAITS(tid, find_first_bit(prio_tasklet.map, max_prio, NBSOFTIRQ - 1));
            AWAITS(tid, bitmap_first_entry(prio_tasklet, max_prio, ret));
            bitmap_queue_del(ret, max_prio, prio_tasklet, tid);
 
