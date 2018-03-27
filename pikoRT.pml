@@ -14,9 +14,7 @@
 #define PENDSVCLEAR clear_bit(PendSV, irq_pending)
 #define GETPENDSV get_bit(PendSV, irq_pending)
 
-bit data_ready;
-bit cs_c;
-bit cs_p;
+bit data_ready, cs_c, cs_p;
 
 inline set_pending(irq)
 {
@@ -214,6 +212,8 @@ proctype svc()
 {
     byte idx, max_prio, nextUser, tempUser;
     bool retInATStack, retPolicy, del_queue_check;
+    mutex_head mutex_list;
+    cond_head cond_list;
     mtype:svc_t svc_type;
     assert(evalPID == SVC);
 endSVC:

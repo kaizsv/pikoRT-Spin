@@ -10,7 +10,6 @@
 typedef mutex_head {
     byte queue[NBMUTEX] = UNKNOWN
 };
-mutex_head mutex_list;
 
 /* -1: unlocked, 0: locked, positive: locked, possible waiters */
 short mutex;
