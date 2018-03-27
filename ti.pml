@@ -58,9 +58,7 @@ inline thread_info_initialize()
     ti[USER0 - USER0].ti_priority = PRI_MIN;
     ti[USER0 - USER0].ti_state = THREAD_STATE_NEW;
 
-    /* using max_prio to prevent idx being changed in sched_enqueue */
 //    for (idx2: (USER0 + 1) .. (SOFTIRQ - 1)) {
-        assert(NBUSERS == 2); // XXX: replace 5 with idx2 if assert fails.
         ti[5 - USER0].ti_priority = PRI_MIN;
 
         /* sched_enqueue(idx2, AT): prevent nested d_step */

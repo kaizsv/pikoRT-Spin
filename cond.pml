@@ -38,7 +38,7 @@ inline sys_pthread_cond_wait(tid)
      *       the current user might be changed here.
      *       To simulate this situation, the model will call the
      *       sys_pthread_mutex_lock in user task directly.
-    /* contend for the lock */
+     * contend for the lock */
     //sys_pthread_mutex_lock(tid)
 }
 

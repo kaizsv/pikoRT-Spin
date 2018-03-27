@@ -73,7 +73,6 @@ inline sys_pthread_mutex_unlock(tid)
 
 inline mutex_lock(__mutex, tid)
 {
-    /* the atomic (A_AWAITS) in 'do' is to simulate the 'dmb' instruction */
     do                                          // lock_0 loop
     :: A_AWAITS(tid,
         local_monitor = 1;                      // ldrex r1, [r0]
@@ -89,8 +88,7 @@ inline mutex_lock(__mutex, tid)
                 }; goto lock_leave
             :: else                             // bne 0b
             fi
-        fi
-       )
+        fi )                                    // dmb
     od;
 lock_1:
     // itt ne
@@ -104,7 +102,6 @@ lock_leave:
 
 inline mutex_unlock(__mutex, tid)
 {
-    /* the atomic (A_AWAITS) in 'do' is to simulate the 'dmb' instruction */
     do                                          // unlock_0 loop
     :: A_AWAITS(tid,
         local_monitor = 1;                      // ldrex r1, [r0]
@@ -120,8 +117,7 @@ inline mutex_unlock(__mutex, tid)
                 }; goto unlock_leave
             :: else                             // bne 0b
             fi
-        fi
-       )
+        fi )                                    // dmb
     od;
 unlock_1:
     // itt ne

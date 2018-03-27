@@ -79,8 +79,7 @@ inline tasklet_action(ret, tid)
            AWAITS(tid, ret = NO_BH_TASK);
            break
        fi
-    od;
-    skip
+    od
 }
 
 #endif /* _SOFTIRQ_ */

@@ -160,8 +160,7 @@ inline ITake(proc)
                 clear_pending(proc)
             }; break
         :: else
-        fi
-       }
+        fi }
     od
 }
 
@@ -180,8 +179,7 @@ inline PendSVTake()
                 PENDSVCLEAR
             }; break
         :: else
-        fi
-       }
+        fi }
     od
 }
 
@@ -218,7 +216,7 @@ proctype svc()
     mtype:svc_t svc_type;
     assert(evalPID == SVC);
 endSVC:
-    atomic { svc_chan ? svc_type; assert(evalPID == AT) };
+    svc_chan ? svc_type;
     if
     :: svc_type == SYS_MUTEX_LOCK ->
         sys_pthread_mutex_lock(evalPID)
@@ -232,7 +230,7 @@ endSVC:
         sched_enqueue(curUser, evalPID);
         sched_elect(SCHED_OPT_NONE, evalPID)
     fi;
-    AWAITS(evalPID, IRet());
+    AWAITS(evalPID, assert(evalPID == SVC); IRet());
 
     goto endSVC
 }
@@ -260,7 +258,6 @@ endInts:
     if
     :: evalPID == 2 ->
         /* the first interrupt is systick */
-        /* TODO: future work for timer */
         tasklet_schedule(BH_SYSTICK, TIMER_SOFTIRQ_PRIO, evalPID);
         AWAITS(evalPID, PENDSVREQUEST)
     :: else
@@ -273,8 +270,6 @@ endInts:
 
     goto endInts
 }
-
-// TODO: use macro to define users task
 
 proctype consumer()
 {

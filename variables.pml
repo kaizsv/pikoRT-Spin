@@ -16,6 +16,23 @@
  * To simplify the verification result, this model use bitwise operator 
  * to repesent the usage of arrays. Change partial variables' datatype
  * from "byte" to "short" if you want to verify more processes.
+ *
+ * Because the data structure of context switch is regular, we remove the
+ * usage of CTXT data structure.
+ *     Strictly speaking, the ctxt_ATStack need to store the whole ATStack.
+ *     But durning the context switch, the ATStack remains regular. To
+ *     reduce size of ctxt_ATStack, the NBCTXT is setting to 1 and there
+ *     is no need to store the ctxt_ATTop. If the NBCTXT must be set greater
+ *     than 1, each ATStack in ctxt_ATStack need to be UNKNOWN except the
+ *     ATStack[0] to be self user id and the ctxt_ATTop must be 0.
+ *
+ *     For example: ctxt_ATStack
+ *     | 4 U U U U U U | 5 U U U U U U | 6 U U U U U U |
+ *     |NBCTXT == NBALL|
+ *
+ *     #define NBCTXT 1
+ *     byte ctxt_ATStack[(NBUSERS + 1) * NBCTXT];
+ *     int ctxt_ATTop[NBUSERS + 1];
  */
 #define BITMAP_BITS 3
 #define NBUSERS (BITMAP_BITS - 1)
@@ -26,13 +43,11 @@
 #define SOFTIRQ (2 + NBINTS + NBUSERS)
 #define NBALL (SOFTIRQ + 1)
 #define NBATSTACK (NBINTS + 2)
-//#define NBCTXT 1
 #define UNKNOWN 255
 #define IDLE_THREAD 254
 
 #define FOR_EXCEP_IDX for (idx: 2 .. (2 + NBINTS - 1))
 #define FOR_USER_IDX for (idx: USER0 .. (USER0 + NBUSERS - 1))
-//#define FOR_CTXT_IDX for (idx: 0 .. (NBCTXT - 1))
 #define FOR_ATTOP_IDX for (idx: 0 .. ATTop)
 
 #define evalPID (_pid - 1)
@@ -47,15 +62,12 @@ mtype:svc_t = { SYS_MUTEX_LOCK, SYS_MUTEX_UNLOCK, SYS_PTHREAD_YIELD,
 chan svc_chan = [0] of { mtype:svc_t };
 
 byte irq_pending;
+byte ghost_direct_AT;
 byte irq_prio[NBINTS + 2];
 byte AT;
 byte ATStack[NBATSTACK] = UNKNOWN;
 short ATTop;
 byte curUser;
-//byte ctxt_ATStack[(NBUSERS + 1) * NBCTXT];
-//int ctxt_ATTop[NBUSERS + 1];
-
-byte ghost_direct_AT;
 
 inline sys_call(__svc_type)
 {
@@ -121,20 +133,6 @@ inline system_initialize()
     irq_pending = 0;
     ghost_direct_AT = 0
 
-    /* XXX setting context
-     * Strictly speaking, the ctxt_ATStack need to store the whole ATStack.
-     * But durning the context switch, the ATStack remains UNKNOWN except
-     * ATStack[0] to be curUser and ATTop to be 0.
-     *
-     * To reduce size of ctxt_ATStack, the NBCTXT is setting to 1 and there
-     * is no need to store the ctxt_ATTop. If the NBCTXT must be set greater
-     * than 1, each ATStack in ctxt_ATStack need to be UNKNOWN except the
-     * ATStack[0] to be self user id and the ctxt_ATTop must be 0.
-     *
-     * For example: ctxt_ATStack
-     * | 4 U U U U U U | 5 U U U U U U | 6 U U U U U U |
-     * |NBCTXT == NBALL|
-     */
 //    FOR_USER_IDX {
 //        ctxt_ATStack[(idx - USER0) * NBCTXT + 0] = idx
 //    }
