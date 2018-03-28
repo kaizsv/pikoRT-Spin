@@ -1,6 +1,8 @@
 # pikoRT-Spin
 A Promela model of pikoRT under the Spin model checker. https://github.com/Piko-RT/pikoRT
 
+Make sure you have enough RAM on your machine. 52G is the default setting and can be modified in Makefile. You can add `MA=<24>` to reduce the memory usage but increase the running time.
+
 ## Three types of check
 ### Safety
 make safety_bfs  

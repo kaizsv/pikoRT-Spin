@@ -216,7 +216,7 @@ proctype svc()
     mtype:svc_t svc_type;
     assert(evalPID == SVC);
 endSVC:
-    svc_chan ? svc_type;
+    atomic { svc_chan ? svc_type; assert(evalPID == AT) };
     if
     :: svc_type == SYS_MUTEX_LOCK ->
         sys_pthread_mutex_lock(evalPID)
@@ -230,7 +230,7 @@ endSVC:
         sched_enqueue(curUser, evalPID);
         sched_elect(SCHED_OPT_NONE, evalPID)
     fi;
-    AWAITS(evalPID, assert(evalPID == SVC); IRet());
+    AWAITS(evalPID, IRet());
 
     goto endSVC
 }
