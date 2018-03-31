@@ -274,9 +274,8 @@ endInts:
 proctype consumer()
 {
     assert(USER0 <= evalPID && evalPID < SOFTIRQ);
-endConsumer:
+wantConsumer:
     mutex_lock(mutex, evalPID);
-want:
     do
     :: A_AWAITS(evalPID,
         if
@@ -291,15 +290,14 @@ inCS:
     A_AWAITS(evalPID, assert(!cs_p); cs_c = 0; sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, evalPID);
 
-    goto endConsumer
+    goto wantConsumer
 }
 
 proctype producer()
 {
     assert(USER0 <= evalPID && evalPID < SOFTIRQ);
-endProducer:
+wantProducer:
     mutex_lock(mutex, evalPID);
-want:
     do
     :: A_AWAITS(evalPID,
         if
@@ -314,7 +312,7 @@ inCS:
     A_AWAITS(evalPID, assert(!cs_c); cs_p = 0; sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, evalPID);
 
-    goto endProducer
+    goto wantProducer
 }
 
 /* softirq is in non-privileged mode */
