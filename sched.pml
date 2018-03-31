@@ -11,9 +11,10 @@
  * the minimal priority can only be 30. However, the minimal priority
  * is 31 in pikoRT source code.
  *
- * To reduce memory usage, there is only NBUSERS+1 priority in this model.
+ * TODO: To reduce memory usage, there is only 2 priority level in this model.
+ *       Increase if needed.
  */
-#define NBITMAP_BIT BITMAP_BITS
+#define NBITMAP_BIT 2
 #define PRI_MAX 0
 #define PRI_MIN (NBITMAP_BIT - 1)
 
