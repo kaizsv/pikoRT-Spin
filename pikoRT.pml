@@ -277,16 +277,17 @@ proctype consumer()
 endConsumer:
     mutex_lock(mutex, evalPID);
 want:
-    A_AWAITS(evalPID,
-        do
+    do
+    :: A_AWAITS(evalPID,
+        if
         :: !data_ready ->
             sys_call(SYS_COND_WAIT);
             sys_call(SYS_MUTEX_LOCK)
         :: else -> break
-        od
-    );
+        fi )
+    od;
 inCS:
-    AWAITS(evalPID, assert(!cs_p); cs_c = 1; data_ready = 0);
+    A_AWAITS(evalPID, assert(!cs_p); cs_c = 1; data_ready = 0);
     A_AWAITS(evalPID, assert(!cs_p); cs_c = 0; sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, evalPID);
 
@@ -299,16 +300,17 @@ proctype producer()
 endProducer:
     mutex_lock(mutex, evalPID);
 want:
-    A_AWAITS(evalPID,
-        do
+    do
+    :: A_AWAITS(evalPID,
+        if
         :: data_ready ->
             sys_call(SYS_COND_WAIT);
             sys_call(SYS_MUTEX_LOCK)
         :: else -> break
-        od
-    );
+        fi )
+    od;
 inCS:
-    AWAITS(evalPID, assert(!cs_c); cs_p = 1; data_ready = 1);
+    A_AWAITS(evalPID, assert(!cs_c); cs_p = 1; data_ready = 1);
     A_AWAITS(evalPID, assert(!cs_c); cs_p = 0; sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, evalPID);
 
