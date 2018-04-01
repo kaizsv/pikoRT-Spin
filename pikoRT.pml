@@ -248,6 +248,20 @@ endPendSV:
     goto endPendSV
 }
 
+proctype systick()
+{
+    byte idx, max_prio;
+    bool retInATStack, retPolicy;
+    assert(PendSV < evalPID && evalPID < USER0);
+endSystick:
+    ITake(evalPID);
+    tasklet_schedule(BH_SYSTICK, TIMER_SOFTIRQ_PRIO, evalPID);
+    AWAITS(evalPID, PENDSVREQUEST)
+    AWAITS(evalPID, IRet());
+
+    goto endSystick
+}
+
 proctype interrupts()
 {
     byte idx, max_prio;
@@ -255,17 +269,10 @@ proctype interrupts()
     assert(PendSV < evalPID && evalPID < USER0);
 endInts:
     ITake(evalPID);
-    if
-    :: evalPID == 2 ->
-        /* the first interrupt is systick */
-        tasklet_schedule(BH_SYSTICK, TIMER_SOFTIRQ_PRIO, evalPID);
-        AWAITS(evalPID, PENDSVREQUEST)
-    :: else
-        /* using stm32_uartx_isr() as interrupt example
-         * this isr will not influence the scheduling behavior
-         * only updates charactor buffer and calls an empty callback func */
-        AWAITS(evalPID, skip)
-    fi;
+    /* using stm32_uartx_isr() as interrupt example
+     * this isr will not influence the scheduling behavior
+     * only updates charactor buffer and calls an empty callback func */
+    A_AWAITS(evalPID, skip)
     AWAITS(evalPID, IRet());
 
     goto endInts
@@ -344,7 +351,10 @@ init
         run svc();
         run pendsv();
         for (idx: 2 .. (USER0 - 1)) {
-            run interrupts()
+            if
+            :: idx == (PendSV + 1) -> run systick()
+            :: else -> run interrupts()
+            fi
         }
         idx = 0;
         for (idx: USER0 .. (USER0 + NBUSERS - 1)) {
