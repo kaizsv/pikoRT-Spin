@@ -280,6 +280,7 @@ endInts:
 
 proctype consumer()
 {
+    bit ne;
     assert(USER0 <= evalPID && evalPID < SOFTIRQ);
 wantConsumer:
     mutex_lock(mutex, evalPID);
@@ -302,6 +303,7 @@ inCS:
 
 proctype producer()
 {
+    bit ne;
     assert(USER0 <= evalPID && evalPID < SOFTIRQ);
 wantProducer:
     mutex_lock(mutex, evalPID);

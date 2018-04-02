@@ -73,60 +73,82 @@ inline sys_pthread_mutex_unlock(tid)
 
 inline mutex_lock(__mutex, tid)
 {
-    do                                          // lock_0 loop
-    :: A_AWAITS(tid,
-        local_monitor = 1;                      // ldrex r1, [r0]
-        if                                      // teq r1, #-1
-        :: __mutex != -1 ->
-            goto lock_1                         // bne 1f
-        :: else ->                              // strex r1, r2, [r0]
-            if
-            :: local_monitor == 1 ->            // 'strex' success
-                d_step {
-                    assert(__mutex == -1);
-                    __mutex = 0; local_monitor = 0
-                }; goto lock_leave
-            :: else                             // bne 0b
-            fi
-        fi )                                    // dmb
+    do                                         // lock_0 loop
+    :: AWAITS(tid, local_monitor = 1);         // ldrex r1, [r0]
+       AWAITS(tid,                             // teq r1, #-1
+        if
+        :: __mutex != -1 -> ne = 1
+        :: else -> ne = 0
+        fi );
+       A_AWAITS(tid,                           // bne 1f
+        if
+        :: ne == 1 -> goto lock_1
+        :: else
+        fi );
+       AWAITS(tid,                             // strex r1, r2, [r0]
+        if
+        :: local_monitor == 1 ->               // 'strex' success
+            assert(__mutex == -1);
+            __mutex = 0; local_monitor = 0
+        :: else -> ne = 1
+        fi );
+       A_AWAITS(tid,                           // teq r1, #0
+        if
+        :: ne != 1 -> break
+        :: else                                // bne 0b
+        fi )
     od;
 lock_1:
     // itt ne
     // movne r1, #SYS_PTHREAD_MUTEX_LOCK
     // svcne #1
-    A_AWAITS(tid, sys_call(SYS_MUTEX_LOCK));
-lock_leave:
-    // bx lr
-    A_AWAITS(tid, local_monitor = 0)
+    A_AWAITS(tid,
+        if
+        :: ne == 1 -> sys_call(SYS_MUTEX_LOCK)
+        :: else
+        fi
+    );
+    A_AWAITS(tid, local_monitor = 0)           // bx lr
 }
 
 inline mutex_unlock(__mutex, tid)
 {
-    do                                          // unlock_0 loop
-    :: A_AWAITS(tid,
-        local_monitor = 1;                      // ldrex r1, [r0]
-        if                                      // teq r1, #0
-        :: __mutex != 0 ->
-            goto unlock_1                       // bne 1f
-        :: else ->                              // strex r1, r2, [r0]
-            if
-            :: local_monitor == 1 ->            // 'strex' success
-                d_step {
-                    assert(__mutex == 0);
-                    __mutex = -1; local_monitor = 0
-                }; goto unlock_leave
-            :: else                             // bne 0b
-            fi
-        fi )                                    // dmb
+    do                                         // unlock_0 loop
+    :: AWAITS(tid, local_monitor = 1);         // ldrex r1, [r0]
+       AWAITS(tid,                             // teq r1, #0
+        if
+        :: __mutex != 0 -> ne = 1
+        :: else -> ne = 0
+        fi );
+       A_AWAITS(tid,                           // bne 1f
+        if
+        :: ne == 1 -> goto unlock_1
+        :: else
+        fi );
+       AWAITS(tid,                             // strex r1, r2, [r0]
+        if
+        :: local_monitor == 1 ->               // 'strex' success
+            assert(__mutex == 0);
+            __mutex = -1; local_monitor = 0
+        :: else -> ne = 1
+        fi );
+       A_AWAITS(tid,                           // teq r1, #0
+        if
+        :: ne != 1 -> break
+        :: else                                // bne 0b
+        fi );
     od;
 unlock_1:
     // itt ne
     // movne r1, #SYS_PTHREAD_MUTEX_UNLOCK
     // svcne #1
-    A_AWAITS(tid, sys_call(SYS_MUTEX_UNLOCK));
-unlock_leave:
-    // bx lr
-    A_AWAITS(tid, local_monitor = 0)
+    A_AWAITS(tid,
+        if
+        :: ne == 1 -> sys_call(SYS_MUTEX_UNLOCK)
+        :: else
+        fi
+    );
+    A_AWAITS(tid, local_monitor = 0)           // bx lr
 }
 
 inline mutex_initialize()
