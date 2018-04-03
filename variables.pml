@@ -55,8 +55,9 @@ mtype:svc_t = { SYS_MUTEX_LOCK, SYS_MUTEX_UNLOCK, SYS_PTHREAD_YIELD,
                 SYS_COND_WAIT, SYS_COND_SIGNAL };
 chan svc_chan = [0] of { mtype:svc_t };
 
-byte irq_pending;
-byte ghost_direct_AT;
+bit PendSV_pending = 0;
+unsigned irq_pending : NBINTS = 0;
+unsigned ghost_direct_AT : NBINTS = 0;
 byte irq_prio[NBINTS + 2];
 byte AT;
 byte ATStack[NBATSTACK] = UNKNOWN;
@@ -66,7 +67,7 @@ byte curUser;
 inline sys_call(__svc_type)
 {
     d_step {
-        assert(ATTop < 0 && ((irq_pending >> 2) == 0));
+        assert(ATTop < 0 && irq_pending == 0);
         assert(ghost_direct_AT == 0);
 
         /* push_and_change_AT(SVC) is placed in pikoRT.pml, write directly */
@@ -123,9 +124,6 @@ inline system_initialize()
         fi
     }
     idx = 0;
-
-    irq_pending = 0;
-    ghost_direct_AT = 0
 
 //    FOR_USER_IDX {
 //        ctxt_ATStack[(idx - USER0) * NBCTXT + 0] = idx

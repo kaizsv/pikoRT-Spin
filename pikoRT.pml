@@ -10,22 +10,18 @@
 #include "pikoRT.prp"
 #endif
 
-#define PENDSVREQUEST set_bit(PendSV, irq_pending)
-#define PENDSVCLEAR clear_bit(PendSV, irq_pending)
-#define GETPENDSV get_bit(PendSV, irq_pending)
-
 bit data_ready, cs_c, cs_p;
 
 inline set_pending(irq)
 {
     assert(PendSV < irq && irq < USER0);
-    set_bit(irq, irq_pending)
+    set_bit(irq - 2, irq_pending)
 }
 
 inline clear_pending(irq)
 {
     assert(PendSV < irq && irq < USER0);
-    clear_bit(irq, irq_pending)
+    clear_bit(irq - 2, irq_pending)
 }
 
 /* return maxima exception priority from pending status. If the exception
@@ -38,9 +34,9 @@ inline get_max_pending(ret)
     /* SVC will not be pending, and pending of PendSV has no effect here */
     for (idx: 2 .. (USER0 - 1)) {
         if
-        :: get_bit(idx, irq_pending) && ret == UNKNOWN ->
+        :: get_bit(idx - 2, irq_pending) && ret == UNKNOWN ->
             ret = idx
-        :: get_bit(idx, irq_pending) && (irq_prio[idx] < irq_prio[ret]) ->
+        :: get_bit(idx - 2, irq_pending) && (irq_prio[idx] < irq_prio[ret]) ->
             ret = idx
         :: else
         fi
@@ -54,27 +50,27 @@ inline get_max_pending(ret)
 inline change_AT_directly(proc)
 {
     assert(PendSV < proc && proc < USER0);
-    assert(ghost_direct_AT < (1 << proc));
-    set_bit(proc, ghost_direct_AT);
+    assert(ghost_direct_AT < (1 << (proc - 2)));
+    set_bit(proc - 2, ghost_direct_AT);
     AT = proc
 }
 
 inline push_and_change_AT(proc)
 {
     if
-    :: !get_bit(AT, ghost_direct_AT) ->
-        /* XXX: this might be false if SOFTIRQ is greater than 7 */
-        ATTop = ATTop + 1;
-        assert(ATTop < NBATSTACK);
-        ATStack[ATTop] = AT;
-        AT = proc
-    :: else ->
+    :: PendSV < AT && AT < USER0 && get_bit(AT - 2, ghost_direct_AT) ->
         /* late arrival
          * current process AT is changed by change_AT_directly and been
          * preempt by higher priority exception, however, AT has not
          * process the ITake to clear the ghost bit. Thus, can not push
          * to the ATStack. */
-        clear_bit(AT, ghost_direct_AT);
+        clear_bit(AT - 2, ghost_direct_AT);
+        AT = proc
+    :: else ->
+        /* XXX: this might be false if SOFTIRQ is greater than 7 */
+        ATTop = ATTop + 1;
+        assert(ATTop < NBATSTACK);
+        ATStack[ATTop] = AT;
         AT = proc
     fi
 }
@@ -111,7 +107,8 @@ inline interrupt_policy(preempt, running, ret)
          * The limitation of this model is that, the irq is triggered by
          * the running of process. The irq will not trigger again while
          * the related interrupt process are running. */
-        assert(get_bit(preempt, ghost_direct_AT));
+        assert(PendSV < preempt && preempt < USER0);
+        assert(get_bit(preempt - 2, ghost_direct_AT));
         /* the preemption can not be self */
         ret = false
     :: running >= USER0 ->
@@ -130,7 +127,7 @@ inline interrupt_policy(preempt, running, ret)
         if
         :: irq_prio[max_prio] < irq_prio[running] ->
             /* preempt directly, and not from irq_pending */
-            assert(!get_bit(preempt, ghost_direct_AT) && preempt == max_prio);
+            assert(!get_bit(preempt - 2, ghost_direct_AT) && preempt == max_prio);
             ret = true
         :: else ->
             ret = false
@@ -152,11 +149,11 @@ inline ITake(proc)
                 clear_pending(proc);
                 push_and_change_AT(proc)
             }; break
-        :: !retInATStack && get_bit(proc, ghost_direct_AT) ->
+        :: !retInATStack && get_bit(proc - 2, ghost_direct_AT) ->
             /* change AT directly from IRet or irq_pending from
              * interrupt_policy, similar to tail-chaining */
             d_step {
-                clear_bit(proc, ghost_direct_AT);
+                clear_bit(proc - 2, ghost_direct_AT);
                 clear_pending(proc)
             }; break
         :: else
@@ -172,11 +169,11 @@ inline PendSVTake()
             inATStack(PendSV, retInATStack)
         };
         if
-        :: GETPENDSV && !retInATStack && (AT >= USER0) ->
+        :: PendSV_pending && !retInATStack && (AT >= USER0) ->
             d_step {
                 assert(ATTop <= 0);
                 push_and_change_AT(PendSV);
-                PENDSVCLEAR
+                PendSV_pending = 0
             }; break
         :: else
         fi }
@@ -186,7 +183,7 @@ inline PendSVTake()
 inline IRet()
 {
     if
-    :: (irq_pending >> 2) != 0 ->
+    :: irq_pending != 0 ->
         /* ignore SVC and PendSV */
         get_max_pending(max_prio);
         assert(max_prio != PendSV);
@@ -251,12 +248,12 @@ endPendSV:
 proctype systick()
 {
     byte idx, max_prio;
-    bool retInATStack, retPolicy;
+    bool retInATStack, retPolicy, softirq_run;
     assert(PendSV < evalPID && evalPID < USER0);
 endSystick:
     ITake(evalPID);
     tasklet_schedule(BH_SYSTICK, TIMER_SOFTIRQ_PRIO, evalPID);
-    AWAITS(evalPID, PENDSVREQUEST)
+    AWAITS(evalPID, PendSV_pending = 1)
     AWAITS(evalPID, IRet());
 
     goto endSystick
