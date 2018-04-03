@@ -6,11 +6,6 @@
  * Note:
  * softirq is one of the user tasks.
  *
- * Note:
- * BITMAP_BITS is defined for bitmap to reduce the memory usage of
- * bitmap structure it contains NBUSERS and SOFTIRQ and must be
- * real number (not include expression operators).
- *
  * Warning:
  * The number of users and interrupts must smaller or equal than seven.
  * To simplify the verification result, this model use bitwise operator 
@@ -34,8 +29,7 @@
  *     byte ctxt_ATStack[(NBUSERS + 1) * NBCTXT];
  *     int ctxt_ATTop[NBUSERS + 1];
  */
-#define BITMAP_BITS 3
-#define NBUSERS (BITMAP_BITS - 1)
+#define NBUSERS 2
 #define NBINTS 2
 #define SVC 0
 #define PendSV 1
