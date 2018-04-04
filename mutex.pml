@@ -14,16 +14,8 @@ typedef mutex_head {
 /* -1: unlocked, 0: locked, positive: locked, possible waiters */
 short mutex;
 
-#define GET_LOCAL_MONITOR(m) get_bit(m - USER0, local_monitor)
-#define CLEAR_LOCAL_MONITOR local_monitor = 0
 /* local monitor for r0 in mutex.pml */
-unsigned local_monitor : NBUSERS = 0;
-
-inline set_local_monitor(m)
-{
-    assert(USER0 <= m && m < SOFTIRQ);
-    set_bit(m - USER0, local_monitor)
-}
+bit local_monitor;
 
 inline find_first_blocking_task(ret)
 {
@@ -43,7 +35,7 @@ inline find_first_blocking_task(ret)
 
 inline sys_pthread_mutex_lock(tid)
 {
-    AWAITS(tid, assert(mutex >= -1); mutex = mutex + 1; CLEAR_LOCAL_MONITOR);
+    AWAITS(tid, assert(mutex >= -1); mutex = mutex + 1);
     if
     :: mutex > 0 ->
         AWAITS(tid, ti[curUser - USER0].ti_private = THREAD_PRIVATE_MUTEX);
@@ -57,7 +49,7 @@ inline sys_pthread_mutex_lock(tid)
 inline sys_pthread_mutex_unlock(tid)
 {
     AWAITS(tid, max_prio = UNKNOWN);
-    AWAITS(tid, assert(mutex > -1); mutex = mutex - 1; CLEAR_LOCAL_MONITOR);
+    AWAITS(tid, assert(mutex > -1); mutex = mutex - 1);
     if
     :: mutex >= 0 ->
         AWAITS(tid, find_first_blocking_task(max_prio));
@@ -82,7 +74,7 @@ inline sys_pthread_mutex_unlock(tid)
 inline mutex_lock(__mutex, tid)
 {
     do                                         // lock_0 loop
-    :: AWAITS(tid, set_local_monitor(tid));    // ldrex r1, [r0]
+    :: AWAITS(tid, local_monitor = 1);         // ldrex r1, [r0]
        AWAITS(tid,                             // teq r1, #-1
         if
         :: __mutex != -1 -> ne = 1
@@ -95,9 +87,9 @@ inline mutex_lock(__mutex, tid)
         fi );
        AWAITS(tid,                             // strex r1, r2, [r0]
         if
-        :: GET_LOCAL_MONITOR(tid) ->           // 'strex' success
+        :: local_monitor == 1 ->               // 'strex' success
             assert(__mutex == -1);
-            __mutex = 0; CLEAR_LOCAL_MONITOR
+            __mutex = 0; local_monitor = 0
         :: else -> ne = 1
         fi );
        A_AWAITS(tid,                           // teq r1, #0
@@ -106,7 +98,6 @@ inline mutex_lock(__mutex, tid)
         :: else                                // bne 0b
         fi )
     od;
-    (tid == AT && local_monitor == 0);         // dmb
 lock_1:
     // itt ne
     // movne r1, #SYS_PTHREAD_MUTEX_LOCK
@@ -122,7 +113,7 @@ lock_1:
 inline mutex_unlock(__mutex, tid)
 {
     do                                         // unlock_0 loop
-    :: AWAITS(tid, set_local_monitor(tid));    // ldrex r1, [r0]
+    :: AWAITS(tid, local_monitor = 1);         // ldrex r1, [r0]
        AWAITS(tid,                             // teq r1, #0
         if
         :: __mutex != 0 -> ne = 1
@@ -135,9 +126,9 @@ inline mutex_unlock(__mutex, tid)
         fi );
        AWAITS(tid,                             // strex r1, r2, [r0]
         if
-        :: GET_LOCAL_MONITOR(tid) ->           // 'strex' success
+        :: local_monitor == 1 ->               // 'strex' success
             assert(__mutex == 0);
-            __mutex = -1; CLEAR_LOCAL_MONITOR
+            __mutex = -1; local_monitor = 0
         :: else -> ne = 1
         fi );
        A_AWAITS(tid,                           // teq r1, #0
@@ -146,7 +137,6 @@ inline mutex_unlock(__mutex, tid)
         :: else                                // bne 0b
         fi );
     od;
-    (tid == AT && local_monitor == 0);         // dmb
 unlock_1:
     // itt ne
     // movne r1, #SYS_PTHREAD_MUTEX_UNLOCK

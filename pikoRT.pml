@@ -197,7 +197,12 @@ inline IRet()
         fi
     :: else ->
         pop_ATStack_to_AT()
-    fi
+    fi;
+    /**
+    * reset local monitor: 14.1.7. Exclusive monitor system location
+    * B1.5.8 Exception return behavior
+    */
+    local_monitor = 0
 }
 
 /* -------------
