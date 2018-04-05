@@ -296,7 +296,7 @@ wantConsumer:
         fi )
     od;
 inCS:
-    A_AWAITS(evalPID, assert(!cs_p); cs_c = 1; data_ready = 0);
+    A_AWAITS(evalPID, d_step { assert(!cs_p); cs_c = 1; data_ready = 0 } );
     A_AWAITS(evalPID, assert(!cs_p); cs_c = 0; sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, evalPID);
 
@@ -319,7 +319,7 @@ wantProducer:
         fi )
     od;
 inCS:
-    A_AWAITS(evalPID, assert(!cs_c); cs_p = 1; data_ready = 1);
+    A_AWAITS(evalPID, d_step { assert(!cs_c); cs_p = 1; data_ready = 1 } );
     A_AWAITS(evalPID, assert(!cs_c); cs_p = 0; sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, evalPID);
 
