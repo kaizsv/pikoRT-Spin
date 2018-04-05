@@ -218,7 +218,7 @@ proctype svc()
     mtype:svc_t svc_type;
     assert(evalPID == SVC);
 endSVC:
-    atomic { svc_chan ? svc_type; assert(evalPID == AT) };
+    svc_chan ? svc_type;
     if
     :: svc_type == SYS_MUTEX_LOCK ->
         sys_pthread_mutex_lock(evalPID)
