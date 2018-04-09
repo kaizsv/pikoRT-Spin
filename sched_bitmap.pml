@@ -17,13 +17,23 @@ typedef bitmap_struct {
 /* _bm[0] is active queue, denote as _bm[SCHED_BITMAP_ACTIVE].
  * _bm[1] is expire queue, denote as _bm[SCHED_BITMAP_EXPIRE].
  *
- * If the `THREAD_SCHED_STATE_SWAP` is been set to 1, the active and
- * expire queue will be exchanged through the macro SCHED_BITMAP_ACTIVE
+ * If the `SCHED_STATE_MAP` is been set to 1, the active and expire
+ * runqueue will be exchanged through the macro SCHED_BITMAP_ACTIVE
  * and SCHED_BITMAP_EXPIRE. */
 bitmap_struct sched_bm[2];
 
-#define SCHED_BITMAP_ACTIVE (0 | THREAD_SCHED_STATE_SWAP)
-#define SCHED_BITMAP_EXPIRE (1 ^ THREAD_SCHED_STATE_SWAP)
+/**
+* ACTIVED: 0 | THREAD_SCHED_STATE_SWAP
+* EXPIRED: 1 ^ THREAD_SCHED_STATE_SWAP
+*/
+bit SCHED_STATE_MAP = 0;
+#define SCHED_BITMAP_ACTIVE (0 | SCHED_STATE_MAP)
+#define SCHED_BITMAP_EXPIRE (1 ^ SCHED_STATE_MAP)
+
+inline swap_sched_state_map()
+{
+    SCHED_STATE_MAP = SCHED_STATE_MAP ^ 1
+}
 
 inline add_tail(new, bm, prio, size)
 {
