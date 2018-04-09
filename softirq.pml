@@ -72,7 +72,7 @@ inline tasklet_action(ret, tid)
            //systick_bh(tid)
        :: else ->
            AWAITS(tid, ret = NO_BH_TASK);
-           break
+           A_AWAITS(tid, break)
        fi
     od
 }
