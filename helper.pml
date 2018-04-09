@@ -47,7 +47,6 @@ inline list_del(del, stack, base, size)
             del_queue_check = true;
             stack.queue[base + idx] = UNKNOWN
         :: del_queue_check ->
-            assert(stack.queue[base + idx] != del);
             stack.queue[base + idx - 1] = stack.queue[base + idx];
             if
             :: idx == (size - 1) ->
