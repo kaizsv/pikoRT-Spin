@@ -9,14 +9,8 @@
 #define THREAD_STATE_TERMINATED 4
 #define THREAD_STATE_BLOCKED 5
 
-/**
-* Because we use bitwise operation to simulate the exchange of active and
-* expire runqueue, we don't need to swap the thread state again. Moreover,
-* we shift the order of the READY1 and READY2 thread state to meet with the
-* SCHED_STATE_MAP in sched_bitmap.
-*/
-#define THREAD_STATE_ACTIVED THREAD_STATE_READY1
-#define THREAD_STATE_EXPIRED THREAD_STATE_READY2
+#define THREAD_STATE_ACTIVED (THREAD_STATE_READY1 | SCHED_STATE_MAP)
+#define THREAD_STATE_EXPIRED (THREAD_STATE_READY2 ^ SCHED_STATE_MAP)
 
 #define THREAD_PRIVATE_MUTEX 0
 #define THREAD_PRIVATE_COND 1
