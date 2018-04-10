@@ -1,5 +1,5 @@
 /* warning: the order of the ltl formula must not be changed. */
 //ltl mutual_exclusion { [] !(cs_c && cs_p) }
-ltl consumer_starvation_free { []<>try_c -> []<>cs_c }
-ltl producer_starvation_free { []<>try_p -> []<>cs_p }
-ltl deadlock_free { ([]<>(try_c && try_p)) -> ([]<>(cs_c || cs_p))  }
+ltl consumer_starvation_free { []<>consumer@want -> []<>cs_c }
+ltl producer_starvation_free { []<>producer@want -> []<>cs_p }
+ltl deadlock_free { ([]<>(consumer@want && producer@want)) -> ([]<>(cs_c || cs_p))  }
