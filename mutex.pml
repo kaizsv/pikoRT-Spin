@@ -71,7 +71,7 @@ inline sys_pthread_mutex_unlock(tid)
     fi
 }
 
-inline mutex_lock(__mutex, tid)
+inline mutex_lock(__mutex, cs, tid)
 {
     do                                         // lock_0 loop
     :: AWAITS(tid, local_monitor = 1);         // ldrex r1, [r0]
@@ -89,7 +89,7 @@ inline mutex_lock(__mutex, tid)
         if
         :: local_monitor == 1 ->               // 'strex' success
             assert(__mutex == -1);
-            __mutex = 0; local_monitor = 0
+            __mutex = 0; local_monitor = 0; cs = 1
         :: else -> ne = 1
         fi );
        A_AWAITS(tid,                           // teq r1, #0
@@ -104,13 +104,13 @@ lock_1:
     // svcne #1
     A_AWAITS(tid,
         if
-        :: ne == 1 -> sys_call(SYS_MUTEX_LOCK)
+        :: ne == 1 -> sys_call(SYS_MUTEX_LOCK); cs = 1
         :: else
         fi
-    );
+    )
 }
 
-inline mutex_unlock(__mutex, tid)
+inline mutex_unlock(__mutex, cs, tid)
 {
     do                                         // unlock_0 loop
     :: AWAITS(tid, local_monitor = 1);         // ldrex r1, [r0]
@@ -128,7 +128,7 @@ inline mutex_unlock(__mutex, tid)
         if
         :: local_monitor == 1 ->               // 'strex' success
             assert(__mutex == 0);
-            __mutex = -1; local_monitor = 0
+            __mutex = -1; local_monitor = 0; cs = 0
         :: else -> ne = 1
         fi );
        A_AWAITS(tid,                           // teq r1, #0
@@ -143,10 +143,10 @@ unlock_1:
     // svcne #1
     A_AWAITS(tid,
         if
-        :: ne == 1 -> sys_call(SYS_MUTEX_UNLOCK)
+        :: ne == 1 -> cs = 0; sys_call(SYS_MUTEX_UNLOCK)
         :: else
         fi
-    );
+    )
 }
 
 inline mutex_initialize()

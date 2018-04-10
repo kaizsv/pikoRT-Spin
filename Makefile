@@ -15,6 +15,10 @@ ifdef MA
 COMPILERTIME_FLAGS += -DMA=$(MA)
 endif
 
+ifdef CLAIM
+RUNTIME_FLAGS += -N $(CLAIM)
+endif
+
 $(OUT).c:
 	$(SPIN) $(SPINFLAGS) $(TARGET)
 
@@ -39,9 +43,6 @@ safety_dfs_full: clean $(OUT)_safety_dfs
 
 acceptance_ltl_full: clean $(OUT)_ltl_dfs
 	./$(OUT) $(RUNTIME_FLAGS) -a
-
-ltl_starvation_free: RUNTIME_FLAGS += -N starvation_free
-ltl_starvation_free: acceptance_ltl_full
 
 ltl_deadlock_free: RUNTIME_FLAGS += -N deadlock_free
 ltl_deadlock_free: acceptance_ltl_full

@@ -10,7 +10,7 @@
 #include "pikoRT.prp"
 #endif
 
-bit data_ready, cs_c, cs_p;
+bit data_ready, cs_c, cs_p, try_c, try_p;
 
 #define get_pending(irq, pending) get_bit(irq - 2, pending)
 
@@ -286,20 +286,22 @@ proctype consumer()
     bit ne;
     assert(USER0 <= evalPID && evalPID < SOFTIRQ);
 wantConsumer:
-    mutex_lock(mutex, evalPID);
+    mutex_lock(mutex, cs_c, evalPID);
     do
     :: A_AWAITS(evalPID,
         if
         :: !data_ready ->
+            d_step { try_c = 1; cs_c = 0 };
             sys_call(SYS_COND_WAIT);
-            sys_call(SYS_MUTEX_LOCK)
-        :: else -> break
+            sys_call(SYS_MUTEX_LOCK);
+            cs_c = 1
+        :: else -> try_c = 0; break
         fi )
     od;
 inCS:
-    A_AWAITS(evalPID, d_step { assert(!cs_p); cs_c = 1; data_ready = 0 } );
-    A_AWAITS(evalPID, assert(!cs_p); cs_c = 0; sys_call(SYS_COND_SIGNAL));
-    mutex_unlock(mutex, evalPID);
+    A_AWAITS(evalPID, d_step { assert(!cs_p); data_ready = 0 } );
+    A_AWAITS(evalPID, assert(!cs_p); sys_call(SYS_COND_SIGNAL));
+    mutex_unlock(mutex, cs_c, evalPID);
 
     goto wantConsumer
 }
@@ -309,20 +311,22 @@ proctype producer()
     bit ne;
     assert(USER0 <= evalPID && evalPID < SOFTIRQ);
 wantProducer:
-    mutex_lock(mutex, evalPID);
+    mutex_lock(mutex, cs_p, evalPID);
     do
     :: A_AWAITS(evalPID,
         if
         :: data_ready ->
+            d_step { try_p = 1; cs_p = 0 }
             sys_call(SYS_COND_WAIT);
-            sys_call(SYS_MUTEX_LOCK)
-        :: else -> break
+            sys_call(SYS_MUTEX_LOCK);
+            cs_p = 1
+        :: else -> try_p = 0; break
         fi )
     od;
 inCS:
-    A_AWAITS(evalPID, d_step { assert(!cs_c); cs_p = 1; data_ready = 1 } );
-    A_AWAITS(evalPID, assert(!cs_c); cs_p = 0; sys_call(SYS_COND_SIGNAL));
-    mutex_unlock(mutex, evalPID);
+    A_AWAITS(evalPID, d_step { assert(!cs_c); data_ready = 1 } );
+    A_AWAITS(evalPID, assert(!cs_c); sys_call(SYS_COND_SIGNAL));
+    mutex_unlock(mutex, cs_p, evalPID);
 
     goto wantProducer
 }
