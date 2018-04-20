@@ -70,30 +70,31 @@ inline tasklet_queue_del(del, prio, bm, tid)
 inline tasklet_action(ret, tid)
 {
     do
-    :: if
-       :: prio_tasklet.map != 0 ->
-           AWAITS(tid, find_first_bit(prio_tasklet.map, max_prio, NBSOFTIRQ - 1));
-           AWAITS(tid, tasklet_first_entry(prio_tasklet, max_prio, ret));
-           tasklet_queue_del(ret, max_prio, prio_tasklet, tid);
+    :: (tid == AT) ->
+        if
+        :: prio_tasklet.map != 0 ->
+            AWAITS(tid, find_first_bit(prio_tasklet.map, max_prio, NBSOFTIRQ - 1));
+            AWAITS(tid, tasklet_first_entry(prio_tasklet, max_prio, ret));
+            tasklet_queue_del(ret, max_prio, prio_tasklet, tid);
 
-           /* XXX:
-            * To prevent the unreached statement, using assert rather than
-            * condition instruction. If more than one bottom half functions
-            * are used need to re-write with condition
-            *
-            * if
-            * :: next_tasklet == BH_XXX -> XXX_bh()
-            * :: ...
-            * :: else ->
-            * fi
-            */
-           /* the elected tasklet must be systick buttom half */
-           AWAITS(tid, assert(next_tasklet == BH_SYSTICK))
-           //systick_bh(tid)
-       :: else ->
-           AWAITS(tid, ret = NO_BH_TASK);
-           A_AWAITS(tid, break)
-       fi
+            /* XXX:
+             * To prevent the unreached statement, using assert rather than
+             * condition instruction. If more than one bottom half functions
+             * are used need to re-write with condition
+             *
+             * if
+             * :: next_tasklet == BH_XXX -> XXX_bh()
+             * :: ...
+             * :: else ->
+             * fi
+             */
+            /* the elected tasklet must be systick buttom half */
+            AWAITS(tid, assert(next_tasklet == BH_SYSTICK))
+            //systick_bh(tid)
+        :: else ->
+            AWAITS(tid, ret = NO_BH_TASK);
+            A_AWAITS(tid, break)
+        fi
     od
 }
 
