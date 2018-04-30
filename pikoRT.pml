@@ -221,15 +221,15 @@ proctype svc()
 endSVC:
     A_AWAITS(evalPID, svc_chan ? svc_type);
     if
-    :: svc_type == SYS_MUTEX_LOCK ->
+    :: SELE(evalPID, svc_type == SYS_MUTEX_LOCK) ->
         sys_pthread_mutex_lock(evalPID)
-    :: svc_type == SYS_MUTEX_UNLOCK ->
+    :: SELE(evalPID, svc_type == SYS_MUTEX_UNLOCK) ->
         sys_pthread_mutex_unlock(evalPID)
-    :: svc_type == SYS_COND_WAIT ->
+    :: SELE(evalPID, svc_type == SYS_COND_WAIT) ->
         sys_pthread_cond_wait(evalPID)
-    :: svc_type == SYS_COND_SIGNAL ->
+    :: SELE(evalPID, svc_type == SYS_COND_SIGNAL) ->
         sys_pthread_cond_signal(evalPID)
-    :: svc_type == SYS_PTHREAD_YIELD ->
+    :: SELE(evalPID, svc_type == SYS_PTHREAD_YIELD) ->
         sched_enqueue(curUser, evalPID);
         sched_elect(SCHED_OPT_NONE, evalPID)
     fi;

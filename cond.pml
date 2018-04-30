@@ -47,16 +47,16 @@ inline sys_pthread_cond_signal(tid)
     AWAITS(tid, max_prio = UNKNOWN);
     AWAITS(tid, find_other_thread(max_prio));
     if
-    :: max_prio != UNKNOWN ->
+    :: SELE(tid, max_prio != UNKNOWN) ->
         AWAITS(tid, list_del(max_prio, cond_list, 0, NBCOND));
         sched_enqueue(max_prio, tid);
         if
-        :: get_ti_prio(max_prio) >= get_ti_prio(curUser) ->
+        :: SELE(tid, get_ti_prio(max_prio) >= get_ti_prio(curUser)) ->
             sched_enqueue(curUser, tid);
             sched_elect(SCHED_OPT_NONE, tid)
-        :: else
+        :: ELSE(tid, get_ti_prio(max_prio) >= get_ti_prio(curUser))
         fi
-    :: else
+    :: ELSE(tid, max_prio != UNKNOWN)
     fi
 }
 

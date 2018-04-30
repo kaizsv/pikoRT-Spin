@@ -37,12 +37,12 @@ inline sys_pthread_mutex_lock(tid)
 {
     AWAITS(tid, assert(mutex >= -1); mutex = mutex + 1);
     if
-    :: mutex > 0 ->
+    :: SELE(tid, mutex > 0) ->
         AWAITS(tid, ti[curUser - USER0].ti_private = THREAD_PRIVATE_MUTEX);
         AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_BLOCKED);
         AWAITS(tid, list_add_tail(curUser, mutex_list, 0, NBMUTEX));
         sched_elect(SCHED_OPT_NONE, tid)
-    :: else
+    :: ELSE(tid, mutex > 0)
     fi
 }
 
@@ -51,22 +51,23 @@ inline sys_pthread_mutex_unlock(tid)
     AWAITS(tid, max_prio = UNKNOWN);
     AWAITS(tid, assert(mutex > -1); mutex = mutex - 1);
     if
-    :: mutex >= 0 ->
+    :: SELE(tid, mutex >= 0) ->
         AWAITS(tid, find_first_blocking_task(max_prio));
         AWAITS(tid, list_del(max_prio, mutex_list, 0, NBMUTEX));
         sched_enqueue(max_prio, tid)
-    :: else
+    :: ELSE(tid, mutex >= 0)
     fi;
     if
-    :: get_ti_state(curUser) == THREAD_STATE_BLOCKED ->
+    :: SELE(tid, get_ti_state(curUser) == THREAD_STATE_BLOCKED) ->
         sched_elect(SCHED_OPT_NONE, tid)
-    :: else ->
+    :: ELSE(tid, get_ti_state(curUser) == THREAD_STATE_BLOCKED) ->
         if
-        :: max_prio != UNKNOWN &&
-           get_ti_prio(curUser) <= get_ti_prio(max_prio) ->
+        :: SELE(tid, max_prio != UNKNOWN &&
+                     get_ti_prio(curUser) <= get_ti_prio(max_prio)) ->
             sched_enqueue(curUser, tid);
             sched_elect(SCHED_OPT_NONE, tid)
-        :: else
+        :: ELSE(tid, max_prio != UNKNOWN &&
+                     get_ti_prio(curUser) <= get_ti_prio(max_prio))
         fi
     fi
 }

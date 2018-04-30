@@ -29,10 +29,10 @@ prio_struct prio_tasklet;
 inline tasklet_bitmap_enqueue(new, prio, tid)
 {
     if
-    :: prio_tasklet.map == 0 ->
+    :: SELE(tid, prio_tasklet.map == 0) ->
         AWAITS(tid, add_tail(new, prio_tasklet, prio, NB_WAIT_TASKLETS));
         AWAITS(tid, set_bit(prio, prio_tasklet.map))
-    :: else
+    :: ELSE(tid, prio_tasklet.map == 0)
     fi
 }
 
@@ -42,10 +42,10 @@ inline tasklet_schedule(task, prio, tid)
 
     /* raise softirq */
     if
-    :: !softirq_run ->
+    :: SELE(tid, !softirq_run) ->
         sched_enqueue(SOFTIRQ, tid);
         AWAITS(tid, softirq_run = true)
-    :: else
+    :: ELSE(tid, !softirq_run)
     fi
 }
 
@@ -61,18 +61,17 @@ inline tasklet_queue_del(del, prio, bm, tid)
 {
     AWAITS(tid, list_del(del, bm, prio * NB_WAIT_TASKS, NB_WAIT_TASKLETS));
     if
-    :: bm.queue[prio * NB_WAIT_TASKLETS + 0] == UNKNOWN ->
+    :: SELE(tid, bm.queue[prio * NB_WAIT_TASKLETS + 0] == UNKNOWN) ->
         AWAITS(tid, clear_bit(prio, bm.map))
-    :: else
+    :: ELSE(tid, bm.queue[prio * NB_WAIT_TASKLETS + 0] == UNKNOWN)
     fi
 }
 
 inline tasklet_action(ret, tid)
 {
     do
-    :: (tid == AT) ->
-        if
-        :: prio_tasklet.map != 0 ->
+    :: if
+       :: SELE(tid, prio_tasklet.map != 0) ->
             AWAITS(tid, find_first_bit(prio_tasklet.map, max_prio, NBSOFTIRQ - 1));
             AWAITS(tid, tasklet_first_entry(prio_tasklet, max_prio, ret));
             tasklet_queue_del(ret, max_prio, prio_tasklet, tid);
@@ -91,10 +90,10 @@ inline tasklet_action(ret, tid)
             /* the elected tasklet must be systick buttom half */
             AWAITS(tid, assert(next_tasklet == BH_SYSTICK))
             //systick_bh(tid)
-        :: else ->
+       :: ELSE(tid, prio_tasklet.map != 0) ->
             AWAITS(tid, ret = NO_BH_TASK);
             A_AWAITS(tid, break)
-        fi
+       fi
     od
 }
 

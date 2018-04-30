@@ -52,10 +52,10 @@ inline find_next_thread(bm, ret, tid)
     AWAITS(tid, find_first_bit(bm.map, max_prio, PRI_MIN));
 
     if
-    :: max_prio == NBITMAP_BIT ->
+    :: SELE(tid, max_prio == NBITMAP_BIT) ->
         /* empty bm.map */
         AWAITS(tid, ret = IDLE_THREAD)
-    :: else ->
+    :: ELSE(tid, max_prio == NBITMAP_BIT) ->
         AWAITS(tid, bitmap_first_entry(bm, max_prio, ret))
     fi
 }
@@ -68,10 +68,10 @@ inline compare_runqueues_to_swap(tid)
 
     /* if expire runqueue has elements, the max_prio will not be NBITMAP_BIT */
     if
-    :: nextUser == IDLE_THREAD && max_prio != NBITMAP_BIT ->
+    :: SELE(tid, nextUser == IDLE_THREAD && max_prio != NBITMAP_BIT) ->
         AWAITS(tid, swap_sched_state_map());
         find_next_thread(sched_bm[SCHED_BITMAP_ACTIVE], nextUser, tid)
-    :: else
+    :: ELSE(tid, nextUser == IDLE_THREAD && max_prio != NBITMAP_BIT)
     fi
 }
 
@@ -85,19 +85,20 @@ inline bitmap_queue_del(del, prio, bm, tid)
 {
     AWAITS(tid, list_del(del, bm, prio * NB_WAIT_TASKS, NB_WAIT_TASKS));
     if
-    :: bm.queue[prio * NB_WAIT_TASKS + 0] == UNKNOWN ->
+    :: SELE(tid, bm.queue[prio * NB_WAIT_TASKS + 0] == UNKNOWN) ->
         /* list empty */
         AWAITS(tid, clear_bit(prio, bm.map))
-    :: else
+    :: ELSE(tid, bm.queue[prio * NB_WAIT_TASKS + 0] == UNKNOWN)
     fi
 }
 
 inline sched_bitmap_dequeue(dequeue, prio, bm, tid)
 {
     if
-    :: dequeue != curUser ->
+    :: SELE(tid, dequeue != curUser) ->
         bitmap_queue_del(dequeue, prio, bm, tid)
-    :: else /* active thread is not in the runqueue */
+    :: ELSE(tid, dequeue != curUser)
+        /* active thread is not in the runqueue */
     fi
 }
 
@@ -111,36 +112,29 @@ inline sched_bitmap_elect(flags, tid)
 
     /* idle thread */
     if
-    :: nextUser != IDLE_THREAD ->
+    :: SELE(tid, nextUser != IDLE_THREAD) ->
         bitmap_queue_del(nextUser, get_ti_prio(nextUser), sched_bm[SCHED_BITMAP_ACTIVE], tid)
-    :: else -> assert(curUser != IDLE_THREAD)
+    :: ELSE(tid, nextUser != IDLE_THREAD) -> assert(curUser != IDLE_THREAD)
     fi;
 
-//    if
-//    TODO: thread exit has not been implemented yet,
-//          comment to prevent unreached statement
-//    :: flags == SCHED_OPT_RESTORE_ONLY ->
-//        /* restore only */
-//        AWAITS(tid, curUser = nextUser);
-//        AWAITS(tid, thread_restore(curUser))
-//    :: else ->
-        if
-        :: flags == SCHED_OPT_TICK && curUser != IDLE_THREAD ->
-            /* task enqueue to SCHED_BITMAP_EXPIRE */
-            AWAITS(tid, add_tail(curUser, sched_bm[SCHED_BITMAP_EXPIRE], get_ti_prio(curUser), NB_WAIT_TASKS));
-            AWAITS(tid, set_bit(get_ti_prio(curUser), sched_bm[SCHED_BITMAP_EXPIRE].map));
-            AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_EXPIRED)
-        :: else
-        fi;
-        if
-        :: nextUser == curUser -> skip
-        :: else ->
-            /* context switch */
-            AWAITS(tid, switch_to(curUser));
-            AWAITS(tid, curUser = nextUser);
-            AWAITS(tid, thread_restore(curUser))
-        fi
-//    fi
+//  TODO: thread exit has not been implemented yet,
+//        comment to prevent unreached statement
+    if
+    :: SELE(tid, flags == SCHED_OPT_TICK && curUser != IDLE_THREAD) ->
+        /* task enqueue to SCHED_BITMAP_EXPIRE */
+        AWAITS(tid, add_tail(curUser, sched_bm[SCHED_BITMAP_EXPIRE], get_ti_prio(curUser), NB_WAIT_TASKS));
+        AWAITS(tid, set_bit(get_ti_prio(curUser), sched_bm[SCHED_BITMAP_EXPIRE].map));
+        AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_EXPIRED)
+    :: ELSE(tid, flags == SCHED_OPT_TICK && curUser != IDLE_THREAD)
+    fi;
+    if
+    :: SELE(tid, nextUser != curUser) ->
+        /* context switch */
+        AWAITS(tid, switch_to(curUser));
+        AWAITS(tid, curUser = nextUser);
+        AWAITS(tid, thread_restore(curUser))
+    :: ELSE(tid, nextUser != curUser)
+    fi
 }
 
 #endif /* _SCHED_BITMAP_ */

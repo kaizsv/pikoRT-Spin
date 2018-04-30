@@ -47,6 +47,8 @@
 #define evalPID (_pid - 1)
 #define AWAITS(pid, C)   d_step { (pid == AT) -> C }
 #define A_AWAITS(pid, C) atomic { (pid == AT) -> C }
+#define SELE(pid, C) (pid == AT) && (C)
+#define ELSE(pid, C) (pid == AT) && !(C)
 
 #ifndef _VARIABLES_
 #define _VARIABLES_
