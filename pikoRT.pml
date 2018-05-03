@@ -219,7 +219,7 @@ proctype svc()
     mtype:svc_t svc_type;
     assert(evalPID == SVC);
 endSVC:
-    A_AWAITS(evalPID, svc_chan ? svc_type);
+    svc_chan ? svc_type;
     if
     :: SELE(evalPID, svc_type == SYS_MUTEX_LOCK) ->
         sys_pthread_mutex_lock(evalPID)
