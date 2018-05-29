@@ -10,6 +10,8 @@ MAXMLIMIT = 53248 # maxima memory usage 52G
 MLIMIT ?= $(MAXMLIMIT)
 MAXDEPTH = 100000000
 RUNTIME_FLAGS = -m$(MAXDEPTH)
+SKIP_TRAIL_STEPS =
+MAX_TRAIL_STEPS =
 
 ifdef MA
 COMPILERTIME_FLAGS += -DMA=$(MA)
@@ -17,6 +19,14 @@ endif
 
 ifdef CLAIM
 RUNTIME_FLAGS += -N $(CLAIM)
+endif
+
+ifdef J
+SKIP_TRAIL_STEPS = -j$(J)
+endif
+
+ifdef U
+MAX_TRAIL_STEPS = -u$(U)
 endif
 
 $(OUT).c:
@@ -48,7 +58,10 @@ ltl_deadlock_free: RUNTIME_FLAGS += -N deadlock_free
 ltl_deadlock_free: acceptance_ltl_full
 
 error_trail:
-	$(SPIN) -t -p -v $(TARGET)
+	$(SPIN) -t -p -v $(SKIP_TRAIL_STEPS) $(MAX_TRAIL_STEPS) $(TARGET)
+
+error_trail_full:
+	$(SPIN) -p -s -r -X -v -n123 -l -g $(SKIP_TRAIL_STEPS) -k $(TARGET).trail $(MAX_TRAIL_STEPS) $(TARGET)
 
 .PHONY: cleanall clean
 clean:
