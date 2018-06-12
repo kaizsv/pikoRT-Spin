@@ -70,9 +70,9 @@ inline tasklet_action(ret, tid)
 {
     do
     :: SELE(tid, prio_tasklet.map != 0) ->
-        AWAITS(tid, find_first_bit(prio_tasklet.map, max_prio, NBSOFTIRQ - 1));
-        AWAITS(tid, tasklet_first_entry(prio_tasklet, max_prio, ret); assert(ret == BH_SYSTICK));
-        tasklet_queue_del(ret, max_prio, prio_tasklet, tid);
+        // TODO: AWAITS(tid, find_first_bit(prio_tasklet.map, max_prio, NBSOFTIRQ - 1));
+        AWAITS(tid, tasklet_first_entry(prio_tasklet, TIMER_SOFTIRQ_PRIO, ret); assert(ret == BH_SYSTICK));
+        tasklet_queue_del(ret, TIMER_SOFTIRQ_PRIO, prio_tasklet, tid);
         /* the elected tasklet must be systick buttom half */
 
         /* XXX:
