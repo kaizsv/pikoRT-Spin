@@ -85,19 +85,19 @@ inline pop_ATStack_to_AT()
     ATTop = ATTop - 1
 }
 
-/* check if proc is active or not */
-inline inATStack(proc, ret)
-{
-    ret = false;
-    FOR_ATTOP_IDX {
-        if
-        :: ATStack[idx] == proc ->
-            ret = true; break
-        :: else
-        fi
-    }
-    idx = 0
-}
+// XXX: We can not simulate the exception preempts itself on Spin.
+//      There is no need to check is the IRQ is in ATStack or not.
+//inline inATStack(proc, ret)
+//{
+//    ret = false;
+//    FOR_ATTOP_IDX {
+//        if
+//        :: ATStack[idx] == proc -> ret = true; break
+//        :: else
+//        fi
+//    }
+//    idx = 0
+//}
 
 /* return true if preemption can preempt the running task, and
  * false otherwise. */
@@ -105,10 +105,8 @@ inline interrupt_policy(preempt, running, ret)
 {
     if
     :: preempt == running ->
-        /* XXX
-         * The limitation of this model is that, the irq is triggered by
-         * the running of process. The irq will not trigger again while
-         * the related interrupt process are running. */
+        /* XXX: The irq is triggered by the running of process. It will not
+         * trigger again while the related interrupt process are running. */
         assert(PendSV < preempt && preempt < USER0);
         assert(get_pending(preempt, ghost_direct_AT));
         /* the preemption can not be self */
@@ -142,16 +140,15 @@ inline ITake(proc)
     do
     :: atomic {
         d_step {
-            inATStack(proc, retInATStack);
             interrupt_policy(proc, AT, retPolicy)
         };
         if
-        :: !retInATStack && retPolicy ->
+        :: retPolicy ->
             d_step {
                 clear_pending(proc, irq_pending);
                 push_and_change_AT(proc)
             }; break
-        :: !retInATStack && get_pending(proc, ghost_direct_AT) ->
+        :: get_pending(proc, ghost_direct_AT) ->
             /* change AT directly from IRet or irq_pending from
              * interrupt_policy, similar to tail-chaining */
             d_step {
@@ -167,11 +164,8 @@ inline PendSVTake()
 {
     do
     :: atomic {
-        d_step {
-            inATStack(PendSV, retInATStack)
-        };
         if
-        :: PendSV_pending && !retInATStack && (AT >= USER0) ->
+        :: PendSV_pending && (AT >= USER0) ->
             d_step {
                 assert(ATTop <= 0);
                 push_and_change_AT(PendSV);
@@ -189,12 +183,11 @@ inline IRet()
     :: irq_pending != 0 ->
         /* ignore SVC and PendSV */
         get_max_pending(max_prio);
-        inATStack(max_prio, retInATStack);
         interrupt_policy(max_prio, ATStack[ATTop], retPolicy);
     :: else
     fi;
     if
-    :: !retInATStack && retPolicy ->
+    :: retPolicy ->
         change_AT_directly(max_prio)
     :: else ->
         pop_ATStack_to_AT()
@@ -213,7 +206,7 @@ inline IRet()
 proctype svc()
 {
     byte idx, max_prio, nextUser;
-    bool retInATStack, retPolicy, del_queue_check;
+    bool retPolicy, del_queue_check;
     mutex_head mutex_list;
     cond_head cond_list;
     mtype:svc_t svc_type;
@@ -241,7 +234,7 @@ loop:
 proctype pendsv()
 {
     byte idx, max_prio, nextUser;
-    bool retInATStack, retPolicy, del_queue_check;
+    bool retPolicy, del_queue_check;
     assert(evalPID == PendSV);
 loop:
     PendSVTake();
@@ -254,7 +247,7 @@ loop:
 proctype systick()
 {
     byte idx, max_prio;
-    bool retInATStack, retPolicy, softirq_run;
+    bool retPolicy, softirq_run;
     assert(PendSV < evalPID && evalPID < USER0);
 loop:
     ITake(evalPID);
@@ -268,7 +261,7 @@ loop:
 proctype interrupts()
 {
     byte idx, max_prio;
-    bool retInATStack, retPolicy;
+    bool retPolicy;
     assert(PendSV < evalPID && evalPID < USER0);
 loop:
     ITake(evalPID);
