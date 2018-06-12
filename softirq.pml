@@ -10,8 +10,7 @@
 #define PRIO_TASKLET_MINPRIO 31
 #define TIMER_SOFTIRQ_PRIO 0
 
-#define NO_BH_TASK 0
-#define BH_SYSTICK 1
+mtype:tasklet_t = { NO_BH_TASK, BH_SYSTICK };
 
 // XXX: increase if more than one bottom half tasks
 #define NBSOFTIRQ 1
@@ -59,7 +58,7 @@ inline tasklet_first_entry(bm, prio, ret)
 /* copy from bitmap_queue_del besides the size of NB_WAIT_TASKLETS */
 inline tasklet_queue_del(del, prio, bm, tid)
 {
-    AWAITS(tid, list_del(del, bm, prio * NB_WAIT_TASKS, NB_WAIT_TASKLETS));
+    AWAITS(tid, list_del(del, bm, prio * NB_WAIT_TASKLETS, NB_WAIT_TASKLETS));
     if
     :: SELE(tid, bm.queue[prio * NB_WAIT_TASKLETS + 0] == UNKNOWN) ->
         AWAITS(tid, clear_bit(prio, bm.map))
@@ -70,30 +69,26 @@ inline tasklet_queue_del(del, prio, bm, tid)
 inline tasklet_action(ret, tid)
 {
     do
-    :: if
-       :: SELE(tid, prio_tasklet.map != 0) ->
-            AWAITS(tid, find_first_bit(prio_tasklet.map, max_prio, NBSOFTIRQ - 1));
-            AWAITS(tid, tasklet_first_entry(prio_tasklet, max_prio, ret));
-            tasklet_queue_del(ret, max_prio, prio_tasklet, tid);
+    :: SELE(tid, prio_tasklet.map != 0) ->
+        AWAITS(tid, find_first_bit(prio_tasklet.map, max_prio, NBSOFTIRQ - 1));
+        AWAITS(tid, tasklet_first_entry(prio_tasklet, max_prio, ret); assert(ret == BH_SYSTICK));
+        tasklet_queue_del(ret, max_prio, prio_tasklet, tid);
+        /* the elected tasklet must be systick buttom half */
 
-            /* XXX:
-             * To prevent the unreached statement, using assert rather than
-             * condition instruction. If more than one bottom half functions
-             * are used need to re-write with condition
-             *
-             * if
-             * :: next_tasklet == BH_XXX -> XXX_bh()
-             * :: ...
-             * :: else ->
-             * fi
-             */
-            /* the elected tasklet must be systick buttom half */
-            AWAITS(tid, assert(next_tasklet == BH_SYSTICK))
-            //systick_bh(tid)
-       :: ELSE(tid, prio_tasklet.map != 0) ->
-            AWAITS(tid, ret = NO_BH_TASK);
-            A_AWAITS(tid, break)
-       fi
+        /* XXX:
+         * To prevent the unreached statement, using assert rather than
+         * condition instruction. If more than one bottom half functions
+         * are used need to re-write with condition
+         *
+         * if
+         * :: next_tasklet == BH_XXX -> XXX_bh()
+         * :: ...
+         * :: else ->
+         * fi
+         */
+        //systick_bh(tid)
+    :: ELSE(tid, prio_tasklet.map != 0) ->
+        A_AWAITS(tid, ret = NO_BH_TASK; break)
     od
 }
 

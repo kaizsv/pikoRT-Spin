@@ -330,8 +330,9 @@ cs:
 /* softirq is in non-privileged mode */
 proctype softirq()
 {
-    byte idx, max_prio, next_tasklet = NO_BH_TASK;
+    byte idx, max_prio;
     bool del_queue_check;
+    mtype:tasklet_t next_tasklet = NO_BH_TASK;
     assert(evalPID == SOFTIRQ);
 loop:
     tasklet_action(next_tasklet, evalPID);
