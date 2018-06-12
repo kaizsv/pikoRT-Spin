@@ -32,8 +32,8 @@
 
 typedef thread_info {
     bit ti_private
-    byte ti_priority
-    byte ti_state
+    byte ti_priority = PRI_MIN
+    byte ti_state = THREAD_STATE_NEW
 };
 thread_info ti[NBUSERS + 1];
 
@@ -43,24 +43,17 @@ inline thread_info_initialize()
      * added to the runqueue because it has been implicityl "elecetd"
      * when initialize return
      */
-    ti[USER0 - USER0].ti_priority = PRI_MIN;
-    ti[USER0 - USER0].ti_state = THREAD_STATE_NEW;
 
-    /**
-    * Use global var 'mutex' to reduce the usage of another local var
-    */
-    for (mutex: (USER0 + 1) .. (SOFTIRQ - 1)) {
-        ti[mutex - USER0].ti_priority = PRI_MIN;
-
-        /* sched_enqueue(mutex, AT): prevent nested d_step */
-        ti[mutex - USER0].ti_state = THREAD_STATE_ACTIVED;
-        add_tail(mutex, sched_bm[SCHED_BITMAP_ACTIVE], get_ti_prio(mutex), NB_WAIT_TASKS);
-        set_bit(get_ti_prio(mutex), sched_bm[SCHED_BITMAP_ACTIVE].map)
+    /* Other user tasks */
+    for (idx2: (USER0 + 1) .. (SOFTIRQ - 1)) {
+        /* sched_enqueue(idx2, AT): prevent nested d_step */
+        ti[5 - USER0].ti_state = THREAD_STATE_ACTIVED;
+        add_tail(5, sched_bm[SCHED_BITMAP_ACTIVE], get_ti_prio(5), NB_WAIT_TASKS);
+        set_bit(get_ti_prio(5), sched_bm[SCHED_BITMAP_ACTIVE].map)
     }
-    mutex = 0;
+    idx2 = 0;
 
     ti[SOFTIRQ - USER0].ti_priority = PRI_MAX;
-    ti[SOFTIRQ - USER0].ti_state = THREAD_STATE_NEW
 }
 
 #endif /* _THREAD_INFO_ */

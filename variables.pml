@@ -60,11 +60,11 @@ chan svc_chan = [0] of { mtype:svc_t };
 bit PendSV_pending = 0;
 unsigned irq_pending : NBINTS = 0;
 unsigned ghost_direct_AT : NBINTS = 0;
-byte irq_prio[NBINTS + 2];
-byte AT;
+byte irq_prio[NBINTS + 2] = 16;
+byte AT = USER0;
 byte ATStack[NBATSTACK] = UNKNOWN;
-short ATTop;
-byte curUser;
+short ATTop = -1;
+byte curUser = USER0;
 
 inline sys_call(__svc_type)
 {
@@ -88,20 +88,12 @@ inline switch_to(proc)
 {
     assert(USER0 <= proc && proc <= SOFTIRQ && ATTop == 0);
     assert(proc == ATStack[ATTop])
-//    FOR_CTXT_IDX {
-//        ctxt_ATStack[(proc - USER0) * NBCTXT + idx] = ATStack[idx]
-//    }
-//    idx = 0
 }
 
 inline thread_restore(proc)
 {
     assert(USER0 <= proc && proc <= SOFTIRQ && ATTop == 0);
     ATStack[ATTop] = proc;
-//    FOR_CTXT_IDX {
-//        ATStack[idx] = ctxt_ATStack[(proc - USER0) * NBCTXT + idx]
-//    }
-//    idx = 0;
     for (idx: 1 .. (NBATSTACK - 1)) {
         assert(ATStack[idx] == UNKNOWN)
     }
@@ -110,28 +102,16 @@ inline thread_restore(proc)
 
 inline system_initialize()
 {
-    curUser = USER0;
-    AT = USER0;
-    ATTop = -1;
-
     /* setting exceptin priority */
-    irq_prio[SVC] = 16;
-    irq_prio[PendSV] = 16;
     FOR_EXCEP_IDX {
         if
         /* priority 3 for systick */
         :: idx == 2 -> irq_prio[idx] = 3
         /* minimal priority for others */
-        :: else -> irq_prio[idx] = 16
+        :: else
         fi
     }
     idx = 0;
-
-//    FOR_USER_IDX {
-//        ctxt_ATStack[(idx - USER0) * NBCTXT + 0] = idx
-//    }
-//    idx = 0;
-//    ctxt_ATStack[(SOFTIRQ - USER0) * NBCTXT + 0] = SOFTIRQ
 }
 
 #endif /* _VARIABLES_ */

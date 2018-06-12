@@ -344,12 +344,11 @@ loop:
 
 init
 {
-    byte idx;
+    byte idx, idx2;
 
     d_step {
         system_initialize();
-        thread_info_initialize();
-        mutex_initialize()
+        thread_info_initialize()
     };
 
     atomic {

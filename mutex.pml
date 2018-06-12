@@ -12,7 +12,7 @@ typedef mutex_head {
 };
 
 /* -1: unlocked, 0: locked, positive: locked, possible waiters */
-short mutex;
+short mutex = -1;
 
 /* local monitor for r0 in mutex.pml */
 bit local_monitor;
@@ -150,11 +150,6 @@ unlock_1:
         :: else
         fi
     )
-}
-
-inline mutex_initialize()
-{
-    mutex = -1;
 }
 
 #endif /* _MUTEX_ */
