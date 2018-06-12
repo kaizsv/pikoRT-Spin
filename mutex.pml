@@ -74,6 +74,7 @@ inline sys_pthread_mutex_unlock(tid)
 
 inline mutex_lock(__mutex, cs, tid)
 {
+lock_0:
     do                                         // lock_0 loop
     :: AWAITS(tid, local_monitor = 1);         // ldrex r1, [r0]
        AWAITS(tid,                             // teq r1, #-1
@@ -113,6 +114,7 @@ lock_1:
 
 inline mutex_unlock(__mutex, cs, tid)
 {
+unlock_0:
     do                                         // unlock_0 loop
     :: AWAITS(tid, local_monitor = 1);         // ldrex r1, [r0]
        AWAITS(tid,                             // teq r1, #0

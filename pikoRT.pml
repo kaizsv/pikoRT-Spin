@@ -10,7 +10,7 @@
 #include "pikoRT.prp"
 #endif
 
-bit data_ready, cs_c, cs_p;//, try_c, try_p;
+bit data_ready, cs_c, cs_p;
 
 #define get_pending(irq, pending) get_bit(irq - 2, pending)
 
@@ -218,7 +218,7 @@ proctype svc()
     cond_head cond_list;
     mtype:svc_t svc_type;
     assert(evalPID == SVC);
-endSVC:
+loop:
     svc_chan ? svc_type;
     if
     :: SELE(evalPID, svc_type == SYS_MUTEX_LOCK) ->
@@ -235,7 +235,7 @@ endSVC:
     fi;
     AWAITS(evalPID, IRet());
 
-    goto endSVC
+    goto loop
 }
 
 proctype pendsv()
@@ -243,12 +243,12 @@ proctype pendsv()
     byte idx, max_prio, nextUser;
     bool retInATStack, retPolicy, del_queue_check;
     assert(evalPID == PendSV);
-endPendSV:
+loop:
     PendSVTake();
     sched_elect(SCHED_OPT_TICK, evalPID);
     AWAITS(evalPID, IRet());
 
-    goto endPendSV
+    goto loop
 }
 
 proctype systick()
@@ -256,13 +256,13 @@ proctype systick()
     byte idx, max_prio;
     bool retInATStack, retPolicy, softirq_run;
     assert(PendSV < evalPID && evalPID < USER0);
-endSystick:
+loop:
     ITake(evalPID);
     tasklet_schedule(BH_SYSTICK, TIMER_SOFTIRQ_PRIO, evalPID);
-    AWAITS(evalPID, PendSV_pending = 1)
+    AWAITS(evalPID, PendSV_pending = 1);
     AWAITS(evalPID, IRet());
 
-    goto endSystick
+    goto loop
 }
 
 proctype interrupts()
@@ -270,24 +270,23 @@ proctype interrupts()
     byte idx, max_prio;
     bool retInATStack, retPolicy;
     assert(PendSV < evalPID && evalPID < USER0);
-endInts:
+loop:
     ITake(evalPID);
     /* using stm32_uartx_isr() as interrupt example
      * this isr will not influence the scheduling behavior
      * only updates charactor buffer and calls an empty callback func */
-    A_AWAITS(evalPID, skip)
+    A_AWAITS(evalPID, skip);
     AWAITS(evalPID, IRet());
 
-    goto endInts
+    goto loop
 }
 
 proctype consumer()
 {
     bit ne;
     assert(USER0 <= evalPID && evalPID < SOFTIRQ);
-endConsumer:
+loop:
     mutex_lock(mutex, cs_c, evalPID);
-want:
     do
     :: A_AWAITS(evalPID,
         if
@@ -297,20 +296,20 @@ want:
         :: else -> break
         fi )
     od;
+cs:
     A_AWAITS(evalPID, d_step { assert(!cs_p); data_ready = 0 } );
     A_AWAITS(evalPID, assert(!cs_p); sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, cs_c, evalPID);
 
-    goto endConsumer
+    goto loop
 }
 
 proctype producer()
 {
     bit ne;
     assert(USER0 <= evalPID && evalPID < SOFTIRQ);
-endProducer:
+loop:
     mutex_lock(mutex, cs_p, evalPID);
-want:
     do
     :: A_AWAITS(evalPID,
         if
@@ -320,11 +319,12 @@ want:
         :: else -> break
         fi )
     od;
+cs:
     A_AWAITS(evalPID, d_step { assert(!cs_c); data_ready = 1 } );
     A_AWAITS(evalPID, assert(!cs_c); sys_call(SYS_COND_SIGNAL));
     mutex_unlock(mutex, cs_p, evalPID);
 
-    goto endProducer
+    goto loop
 }
 
 /* softirq is in non-privileged mode */
@@ -333,13 +333,13 @@ proctype softirq()
     byte idx, max_prio, next_tasklet = NO_BH_TASK;
     bool del_queue_check;
     assert(evalPID == SOFTIRQ);
-endSoftirq:
+loop:
     tasklet_action(next_tasklet, evalPID);
     /* softirqd thread should not return */
     /* sched yield */
     A_AWAITS(evalPID, assert(next_tasklet == NO_BH_TASK); sys_call(SYS_PTHREAD_YIELD));
 
-    goto endSoftirq
+    goto loop
 }
 
 init
