@@ -109,6 +109,7 @@ inline interrupt_policy(preempt, running, ret)
         set_pending(preempt, irq_pending);
         ret = true
     :: else ->
+        assert(max_prio == UNKNOWN);
         /* nested interrupt: running < USER0
          * compare the priority of pending and preemtive exception */
         set_pending(preempt, irq_pending);
@@ -119,7 +120,8 @@ inline interrupt_policy(preempt, running, ret)
             assert(!get_pending(preempt, ghost_direct_AT) && preempt == max_prio);
             ret = true
         :: else -> assert(ret == false)
-        fi
+        fi;
+        max_prio = UNKNOWN
     fi
 }
 
@@ -178,12 +180,18 @@ inline PendSVTake()
 
 inline IRet()
 {
-    assert(retPolicy == false);
+    assert(retPolicy == false && max_prio == UNKNOWN);
     if
     :: irq_pending != 0 ->
         /* ignore SVC and PendSV */
         get_max_pending(max_prio);
-        interrupt_policy(max_prio, ATStack[ATTop], retPolicy);
+        /* interrupt_policy(max_prio, ATStack[ATTop], retPolicy) */
+        if
+        :: max_prio == ATStack[ATTop] -> assert(false)
+        :: ATStack[ATTop] >= USER0 -> retPolicy = true
+        :: irq_prio[max_prio] < irq_prio[ATStack[ATTop]] -> retPolicy = true
+        :: else
+        fi
     :: else
     fi;
     if
@@ -192,6 +200,7 @@ inline IRet()
     :: else ->
         pop_ATStack_to_AT()
     fi;
+    max_prio = UNKNOWN;
     /**
     * reset local monitor: 14.1.7. Exclusive monitor system location
     * B1.5.8 Exception return behavior
@@ -218,7 +227,7 @@ inline sys_call(__svc_type)
 
 proctype svc()
 {
-    byte idx, max_prio, nextUser;
+    byte idx, max_prio = UNKNOWN, nextUser;
     bool retPolicy, del_queue_check;
     mutex_head mutex_list;
     cond_head cond_list;
@@ -246,7 +255,7 @@ loop:
 
 proctype pendsv()
 {
-    byte idx, max_prio, nextUser;
+    byte idx, max_prio = UNKNOWN, nextUser;
     bool retPolicy, del_queue_check;
     assert(evalPID == PendSV);
 loop:
@@ -259,7 +268,7 @@ loop:
 
 proctype systick()
 {
-    byte idx, max_prio;
+    byte idx, max_prio = UNKNOWN;
     bool retPolicy, softirq_run;
     assert(PendSV < evalPID && evalPID < USER0);
 loop:
@@ -273,7 +282,7 @@ loop:
 
 proctype interrupts()
 {
-    byte idx, max_prio;
+    byte idx, max_prio = UNKNOWN;
     bool retPolicy;
     assert(PendSV < evalPID && evalPID < USER0);
 loop:

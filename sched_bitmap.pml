@@ -54,9 +54,9 @@ inline find_next_thread(bm, ret, tid)
     if
     :: SELE(tid, max_prio == NBITMAP_BIT) ->
         /* empty bm.map */
-        AWAITS(tid, ret = IDLE_THREAD)
+        AWAITS(tid, ret = IDLE_THREAD; max_prio = UNKNOWN)
     :: ELSE(tid, max_prio == NBITMAP_BIT) ->
-        AWAITS(tid, bitmap_first_entry(bm, max_prio, ret))
+        AWAITS(tid, bitmap_first_entry(bm, max_prio, ret); max_prio = UNKNOWN)
     fi
 }
 
@@ -71,7 +71,8 @@ inline compare_runqueues_to_swap(tid)
     :: SELE(tid, nextUser == IDLE_THREAD && max_prio != NBITMAP_BIT) ->
         AWAITS(tid, swap_sched_state_map());
         find_next_thread(sched_bm[SCHED_BITMAP_ACTIVE], nextUser, tid)
-    :: ELSE(tid, nextUser == IDLE_THREAD && max_prio != NBITMAP_BIT)
+    :: ELSE(tid, nextUser == IDLE_THREAD && max_prio != NBITMAP_BIT) ->
+        max_prio = UNKNOWN
     fi
 }
 

@@ -67,7 +67,8 @@ inline sys_pthread_mutex_unlock(tid)
             sched_enqueue(curUser, tid);
             sched_elect(SCHED_OPT_NONE, tid)
         :: ELSE(tid, max_prio != UNKNOWN &&
-                     get_ti_prio(curUser) <= get_ti_prio(max_prio))
+                     get_ti_prio(curUser) <= get_ti_prio(max_prio)) ->
+            max_prio = UNKNOWN
         fi
     fi
 }
