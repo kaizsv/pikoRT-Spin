@@ -66,24 +66,6 @@ byte ATStack[NBATSTACK] = UNKNOWN;
 short ATTop = -1;
 byte curUser = USER0;
 
-inline sys_call(__svc_type)
-{
-    d_step {
-        assert(ATTop < 0 && irq_pending == 0);
-        assert(ghost_direct_AT == 0);
-
-        /* push_and_change_AT(SVC) is placed in pikoRT.pml, write directly */
-        ATTop = ATTop + 1;
-        assert(ATTop < NBATSTACK);
-        ATStack[ATTop] = AT;
-        AT = SVC
-    };
-
-    /* rendezvous chan will block the process, need to place outside d_step */
-    svc_chan ! __svc_type;
-    (evalPID == AT)
-}
-
 inline switch_to(proc)
 {
     assert(USER0 <= proc && proc <= SOFTIRQ && ATTop == 0);

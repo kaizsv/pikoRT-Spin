@@ -59,22 +59,11 @@ inline change_AT_directly(proc)
 
 inline push_and_change_AT(proc)
 {
-    if
-    :: PendSV < AT && AT < USER0 && get_pending(AT, ghost_direct_AT) ->
-        /* late arrival
-         * current process AT is changed by change_AT_directly and been
-         * preempt by higher priority exception, however, AT has not
-         * process the ITake to clear the ghost bit. Thus, can not push
-         * to the ATStack. */
-        clear_pending(AT, ghost_direct_AT);
-        AT = proc
-    :: else ->
-        /* XXX: this might be false if SOFTIRQ is greater than 7 */
-        ATTop = ATTop + 1;
-        assert(ATTop < NBATSTACK);
-        ATStack[ATTop] = AT;
-        AT = proc
-    fi
+    /* XXX: this might be false if SOFTIRQ is greater than 7 */
+    ATTop = ATTop + 1;
+    assert(ATTop < NBATSTACK);
+    ATStack[ATTop] = AT;
+    AT = proc
 }
 
 inline pop_ATStack_to_AT()
@@ -146,9 +135,20 @@ inline ITake(proc)
         :: retPolicy ->
             d_step {
                 clear_pending(proc, irq_pending);
-                push_and_change_AT(proc)
+                /* late arrival
+                 * current process AT is changed by change_AT_directly and been
+                 * preempt by higher priority exception, however, AT has not
+                 * process the ITake to clear the ghost bit. Thus, can not push
+                 * to the ATStack. */
+                if
+                :: PendSV < AT && AT < USER0 && get_pending(AT, ghost_direct_AT) ->
+                    clear_pending(AT, ghost_direct_AT);
+                    AT = proc
+                :: else ->
+                    push_and_change_AT(proc)
+                fi
             }; break
-        :: get_pending(proc, ghost_direct_AT) ->
+        :: !retPolicy && get_pending(proc, ghost_direct_AT) ->
             /* change AT directly from IRet or irq_pending from
              * interrupt_policy, similar to tail-chaining */
             d_step {
@@ -197,6 +197,19 @@ inline IRet()
     * B1.5.8 Exception return behavior
     */
     local_monitor = 0
+}
+
+inline sys_call(__svc_type)
+{
+    d_step {
+        assert(ATTop < 0 && irq_pending == 0);
+        assert(ghost_direct_AT == 0);
+        push_and_change_AT(SVC)
+    };
+
+    /* rendezvous chan will block the process, need to place outside d_step */
+    svc_chan ! __svc_type;
+    (evalPID == AT)
 }
 
 /* -------------
