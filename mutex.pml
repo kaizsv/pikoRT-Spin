@@ -106,7 +106,7 @@ lock_1:
     // svcne #1
     A_AWAITS(tid,
         if
-        :: ne == 1 -> sys_call(SYS_MUTEX_LOCK); cs = 1
+        :: ne == 1 -> ne = 0; sys_call(SYS_MUTEX_LOCK); cs = 1
         :: else
         fi
     )
@@ -146,7 +146,7 @@ unlock_1:
     // svcne #1
     A_AWAITS(tid,
         if
-        :: ne == 1 -> cs = 0; sys_call(SYS_MUTEX_UNLOCK)
+        :: ne == 1 -> ne = 0; cs = 0; sys_call(SYS_MUTEX_UNLOCK)
         :: else
         fi
     )
