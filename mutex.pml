@@ -48,8 +48,7 @@ inline sys_pthread_mutex_lock(tid)
 
 inline sys_pthread_mutex_unlock(tid)
 {
-    AWAITS(tid, max_prio = UNKNOWN);
-    AWAITS(tid, assert(mutex > -1); mutex = mutex - 1);
+    AWAITS(tid, assert(mutex > -1 && max_prio == UNKNOWN); mutex = mutex - 1);
     if
     :: SELE(tid, mutex >= 0) ->
         AWAITS(tid, find_first_blocking_task(max_prio));

@@ -44,8 +44,7 @@ inline sys_pthread_cond_wait(tid)
 
 inline sys_pthread_cond_signal(tid)
 {
-    AWAITS(tid, max_prio = UNKNOWN);
-    AWAITS(tid, find_other_thread(max_prio));
+    AWAITS(tid, assert(max_prio == UNKNOWN); find_other_thread(max_prio));
     if
     :: SELE(tid, max_prio != UNKNOWN) ->
         AWAITS(tid, list_del(max_prio, cond_list, 0, NBCOND));
