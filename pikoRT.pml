@@ -99,7 +99,7 @@ inline interrupt_policy(preempt, running, ret)
         assert(PendSV < preempt && preempt < USER0);
         assert(get_pending(preempt, ghost_direct_AT));
         /* the preemption can not be self */
-        ret = false
+        assert(ret == false)
     :: running >= USER0 ->
         /* the exception always takes while user task is running
          * and there remain nothing in ATStack */
@@ -118,8 +118,7 @@ inline interrupt_policy(preempt, running, ret)
             /* preempt directly, and not from irq_pending */
             assert(!get_pending(preempt, ghost_direct_AT) && preempt == max_prio);
             ret = true
-        :: else ->
-            ret = false
+        :: else -> assert(ret == false)
         fi
     fi
 }
@@ -134,6 +133,7 @@ inline ITake(proc)
         if
         :: retPolicy ->
             d_step {
+                retPolicy = false;
                 clear_pending(proc, irq_pending);
                 /* late arrival
                  * current process AT is changed by change_AT_directly and been
@@ -178,7 +178,7 @@ inline PendSVTake()
 
 inline IRet()
 {
-    retPolicy = 0;
+    assert(retPolicy == false);
     if
     :: irq_pending != 0 ->
         /* ignore SVC and PendSV */
@@ -188,7 +188,7 @@ inline IRet()
     fi;
     if
     :: retPolicy ->
-        change_AT_directly(max_prio)
+        change_AT_directly(max_prio); retPolicy = false
     :: else ->
         pop_ATStack_to_AT()
     fi;
