@@ -290,7 +290,7 @@ loop:
     /* using stm32_uartx_isr() as interrupt example
      * this isr will not influence the scheduling behavior
      * only updates charactor buffer and calls an empty callback func */
-    A_AWAITS(evalPID, skip);
+    skip;
     AWAITS(evalPID, IRet());
 
     goto loop
