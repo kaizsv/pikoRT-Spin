@@ -32,7 +32,7 @@ inline clear_pending(irq, pending)
  */
 inline get_max_pending(ret)
 {
-    ret = UNKNOWN;
+    assert(ret == UNKNOWN);
     /* SVC will not be pending, and pending of PendSV has no effect here */
     for (idx: 2 .. (USER0 - 1)) {
         if
@@ -129,9 +129,7 @@ inline ITake(proc)
 {
     do
     :: atomic {
-        d_step {
-            interrupt_policy(proc, AT, retPolicy)
-        };
+        d_step { interrupt_policy(proc, AT, retPolicy) };
         if
         :: retPolicy ->
             d_step {
@@ -189,7 +187,8 @@ inline IRet()
         if
         :: max_prio == ATStack[ATTop] -> assert(false)
         :: ATStack[ATTop] >= USER0 -> retPolicy = true
-        :: irq_prio[max_prio] < irq_prio[ATStack[ATTop]] -> retPolicy = true
+        :: irq_prio[max_prio] < irq_prio[ATStack[ATTop]] ->
+            assert(!get_pending(max_prio, ghost_direct_AT)); retPolicy = true
         :: else
         fi
     :: else
@@ -211,8 +210,7 @@ inline IRet()
 inline sys_call(__svc_type)
 {
     d_step {
-        assert(ATTop < 0 && irq_pending == 0);
-        assert(ghost_direct_AT == 0);
+        assert(ATTop < 0 && irq_pending == 0 && ghost_direct_AT == 0);
         push_and_change_AT(SVC)
     };
 
