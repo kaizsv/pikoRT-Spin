@@ -14,7 +14,6 @@ typedef cond_head {
 
 inline find_other_thread(ret)
 {
-    assert(ret == UNKNOWN);
     for (idx: 0 .. (NBCOND - 1)) {
         if
         :: cond_list.queue[idx] != UNKNOWN &&

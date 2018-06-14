@@ -19,7 +19,6 @@ bit local_monitor;
 
 inline find_first_blocking_task(ret)
 {
-    assert(ret == UNKNOWN);
     for (idx: 0 .. (NBMUTEX - 1)) {
         if
         :: mutex_list.queue[idx] != UNKNOWN &&

@@ -132,8 +132,8 @@ inline sched_bitmap_elect(flags, tid)
     :: SELE(tid, nextUser != curUser) ->
         /* context switch */
         AWAITS(tid, switch_to(curUser));
-        AWAITS(tid, curUser = nextUser);
-        AWAITS(tid, thread_restore(curUser); nextUser = UNKNOWN)
+        AWAITS(tid, curUser = nextUser; nextUser = UNKNOWN);
+        AWAITS(tid, thread_restore(curUser); assert(curUser != UNKNOWN))
     :: ELSE(tid, nextUser != curUser)
     fi
 }

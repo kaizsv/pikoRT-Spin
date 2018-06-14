@@ -109,7 +109,6 @@ inline interrupt_policy(preempt, running, ret)
         set_pending(preempt, irq_pending);
         ret = true
     :: else ->
-        assert(max_prio == UNKNOWN);
         /* nested interrupt: running < USER0
          * compare the priority of pending and preemtive exception */
         set_pending(preempt, irq_pending);
@@ -178,7 +177,7 @@ inline PendSVTake()
 
 inline IRet()
 {
-    assert(retPolicy == false && max_prio == UNKNOWN);
+    assert(retPolicy == false);
     if
     :: irq_pending != 0 ->
         /* ignore SVC and PendSV */
@@ -191,7 +190,7 @@ inline IRet()
             assert(!get_pending(max_prio, ghost_direct_AT)); retPolicy = true
         :: else
         fi
-    :: else
+    :: else -> assert(max_prio == UNKNOWN)
     fi;
     if
     :: retPolicy ->
