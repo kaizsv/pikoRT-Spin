@@ -133,7 +133,7 @@ inline sched_bitmap_elect(flags, tid)
         /* context switch */
         AWAITS(tid, switch_to(curUser));
         AWAITS(tid, curUser = nextUser);
-        AWAITS(tid, thread_restore(curUser))
+        AWAITS(tid, thread_restore(curUser); nextUser = UNKNOWN)
     :: ELSE(tid, nextUser != curUser)
     fi
 }
