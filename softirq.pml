@@ -64,6 +64,7 @@ inline tasklet_queue_del(del, prio, bm, tid)
         AWAITS(tid, clear_bit(prio, bm.map))
     :: ELSE(tid, bm.queue[prio * NB_WAIT_TASKLETS + 0] == UNKNOWN)
     fi
+//    prio = UNKNOWN
 }
 
 inline tasklet_action(ret, tid)
@@ -78,13 +79,15 @@ inline tasklet_action(ret, tid)
         /* XXX:
          * To prevent the unreached statement, using assert rather than
          * condition instruction. If more than one bottom half functions
-         * are used need to re-write with condition
+         * are used need to re-write with condition.
          *
          * if
          * :: next_tasklet == BH_XXX -> XXX_bh()
          * :: ...
          * :: else ->
          * fi
+         *
+         * TODO: Moreover, uncomment the reset of prio at tasklet_queue_del.
          */
         //systick_bh(tid)
     :: ELSE(tid, prio_tasklet.map != 0) ->
