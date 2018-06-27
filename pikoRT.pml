@@ -75,18 +75,17 @@ inline pop_ATStack_to_AT()
 }
 
 // XXX: We can not simulate the exception preempts itself on Spin.
-//      There is no need to check is the IRQ is in ATStack or not.
-//inline inATStack(proc, ret)
-//{
-//    ret = false;
-//    FOR_ATTOP_IDX {
-//        if
-//        :: ATStack[idx] == proc -> ret = true; break
-//        :: else
-//        fi
-//    }
-//    idx = 0
-//}
+//      If the coming task had been executed (in ATStack), it will be wrong.
+inline inATStack(proc)
+{
+    FOR_ATTOP_IDX {
+        if
+        :: ATStack[idx] == proc -> assert(false)
+        :: else
+        fi
+    }
+    idx = 0
+}
 
 /* return true if preemption can preempt the running task, and
  * false otherwise. */
@@ -132,6 +131,7 @@ inline ITake(proc)
         if
         :: retPolicy ->
             d_step {
+                inATStack(proc);
                 retPolicy = false;
                 clear_pending(proc, irq_pending);
                 /* late arrival
@@ -151,6 +151,7 @@ inline ITake(proc)
             /* change AT directly from IRet or irq_pending from
              * interrupt_policy, similar to tail-chaining */
             d_step {
+                inATStack(proc);
                 clear_pending(proc, ghost_direct_AT);
                 clear_pending(proc, irq_pending)
             }; break
@@ -166,6 +167,7 @@ inline PendSVTake()
         if
         :: PendSV_pending && (AT >= USER0) ->
             d_step {
+                inATStack(PendSV);
                 assert(ATTop <= 0);
                 push_and_change_AT(PendSV);
                 PendSV_pending = 0
