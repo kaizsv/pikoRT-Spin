@@ -55,7 +55,6 @@
 
 mtype:svc_t = { SYS_MUTEX_LOCK, SYS_MUTEX_UNLOCK, SYS_PTHREAD_YIELD,
                 SYS_COND_WAIT, SYS_COND_SIGNAL };
-chan svc_chan = [0] of { mtype:svc_t };
 
 bit PendSV_pending = 0;
 unsigned irq_pending : NBINTS = 0;

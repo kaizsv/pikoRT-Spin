@@ -71,7 +71,7 @@ inline sys_pthread_mutex_unlock(tid)
     fi
 }
 
-inline mutex_lock(__mutex, cs, tid)
+inline mutex_lock(__mutex, cs, _chan, tid)
 {
 lock_0:
     do                                         // lock_0 loop
@@ -105,13 +105,13 @@ lock_1:
     // svcne #1
     A_AWAITS(tid,
         if
-        :: ne == 1 -> ne = 0; sys_call(SYS_MUTEX_LOCK); cs = 1
+        :: ne == 1 -> ne = 0; sys_call(SYS_MUTEX_LOCK, _chan); cs = 1
         :: else
         fi
     )
 }
 
-inline mutex_unlock(__mutex, cs, tid)
+inline mutex_unlock(__mutex, cs, _chan, tid)
 {
 unlock_0:
     do                                         // unlock_0 loop
@@ -145,7 +145,7 @@ unlock_1:
     // svcne #1
     A_AWAITS(tid,
         if
-        :: ne == 1 -> ne = 0; cs = 0; sys_call(SYS_MUTEX_UNLOCK)
+        :: ne == 1 -> ne = 0; cs = 0; sys_call(SYS_MUTEX_UNLOCK, _chan)
         :: else
         fi
     )

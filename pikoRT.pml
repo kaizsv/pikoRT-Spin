@@ -208,7 +208,7 @@ inline IRet()
     local_monitor = 0
 }
 
-inline sys_call(__svc_type)
+inline sys_call(__svc_type, __svc_chan)
 {
     d_step {
         assert(ATTop < 0 && irq_pending == 0 && ghost_direct_AT == 0);
@@ -216,7 +216,7 @@ inline sys_call(__svc_type)
     };
 
     /* rendezvous chan will block the process, need to place outside d_step */
-    svc_chan ! __svc_type;
+    __svc_chan ! __svc_type;
     (evalPID == AT)
 }
 
@@ -224,7 +224,7 @@ inline sys_call(__svc_type)
  * all processes
  * ------------ */
 
-proctype svc()
+proctype svc(chan svc_chan)
 {
     byte idx, max_prio = UNKNOWN, nextUser;
     bool retPolicy, del_queue_check;
@@ -295,54 +295,54 @@ loop:
     goto loop
 }
 
-proctype consumer()
+proctype consumer(chan svc_chan)
 {
     bit ne;
     assert(USER0 <= evalPID && evalPID < SOFTIRQ);
 loop:
-    mutex_lock(mutex, cs_c, evalPID);
+    mutex_lock(mutex, cs_c, svc_chan, evalPID);
     do
     :: A_AWAITS(evalPID,
         if
         :: !data_ready ->
-            cs_c = 0; sys_call(SYS_COND_WAIT);
-            sys_call(SYS_MUTEX_LOCK); cs_c = 1
+            cs_c = 0; sys_call(SYS_COND_WAIT, svc_chan);
+            sys_call(SYS_MUTEX_LOCK, svc_chan); cs_c = 1
         :: else -> break
         fi )
     od;
 cs:
     A_AWAITS(evalPID, d_step { assert(!cs_p); data_ready = 0 } );
-    A_AWAITS(evalPID, assert(!cs_p); sys_call(SYS_COND_SIGNAL));
-    mutex_unlock(mutex, cs_c, evalPID);
+    A_AWAITS(evalPID, assert(!cs_p); sys_call(SYS_COND_SIGNAL, svc_chan));
+    mutex_unlock(mutex, cs_c, svc_chan, evalPID);
 
     goto loop
 }
 
-proctype producer()
+proctype producer(chan svc_chan)
 {
     bit ne;
     assert(USER0 <= evalPID && evalPID < SOFTIRQ);
 loop:
-    mutex_lock(mutex, cs_p, evalPID);
+    mutex_lock(mutex, cs_p, svc_chan, evalPID);
     do
     :: A_AWAITS(evalPID,
         if
         :: data_ready ->
-            cs_p = 0; sys_call(SYS_COND_WAIT);
-            sys_call(SYS_MUTEX_LOCK); cs_p = 1
+            cs_p = 0; sys_call(SYS_COND_WAIT, svc_chan);
+            sys_call(SYS_MUTEX_LOCK, svc_chan); cs_p = 1
         :: else -> break
         fi )
     od;
 cs:
     A_AWAITS(evalPID, d_step { assert(!cs_c); data_ready = 1 } );
-    A_AWAITS(evalPID, assert(!cs_c); sys_call(SYS_COND_SIGNAL));
-    mutex_unlock(mutex, cs_p, evalPID);
+    A_AWAITS(evalPID, assert(!cs_c); sys_call(SYS_COND_SIGNAL, svc_chan));
+    mutex_unlock(mutex, cs_p, svc_chan, evalPID);
 
     goto loop
 }
 
 /* softirq is in non-privileged mode */
-proctype softirq()
+proctype softirq(chan svc_chan)
 {
     byte idx, max_prio;
     bool del_queue_check;
@@ -352,7 +352,7 @@ loop:
     tasklet_action(next_tasklet, evalPID);
     /* softirqd thread should not return */
     /* sched yield */
-    A_AWAITS(evalPID, assert(next_tasklet == NO_BH_TASK); sys_call(SYS_PTHREAD_YIELD));
+    A_AWAITS(evalPID, assert(next_tasklet == NO_BH_TASK); sys_call(SYS_PTHREAD_YIELD, svc_chan));
 
     goto loop
 }
@@ -360,6 +360,7 @@ loop:
 init
 {
     byte idx, idx2;
+    chan svc_chan = [0] of { mtype:svc_t };
 
     d_step {
         system_initialize();
@@ -367,7 +368,7 @@ init
     };
 
     atomic {
-        run svc();
+        run svc(svc_chan);
         run pendsv();
         for (idx: 2 .. (USER0 - 1)) {
             if
@@ -378,11 +379,11 @@ init
         idx = 0;
         for (idx: USER0 .. (USER0 + NBUSERS - 1)) {
             if
-            :: idx == USER0 -> run consumer()
-            :: idx == (USER0 + 1) -> run producer()
+            :: idx == USER0 -> run consumer(svc_chan)
+            :: idx == (USER0 + 1) -> run producer(svc_chan)
             fi
         }
         idx = 0;
-        run softirq()
+        run softirq(svc_chan)
     }
 }
