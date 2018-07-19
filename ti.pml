@@ -47,13 +47,13 @@ inline thread_info_initialize()
     /* Other user tasks */
     for (idx2: (USER0 + 1) .. (SOFTIRQ - 1)) {
         /* sched_enqueue(idx2, AT): prevent nested d_step */
-        ti[5 - USER0].ti_state = THREAD_STATE_ACTIVED;
-        add_tail(5, sched_bm[SCHED_BITMAP_ACTIVE], get_ti_prio(5), NB_WAIT_TASKS);
-        set_bit(get_ti_prio(5), sched_bm[SCHED_BITMAP_ACTIVE].map)
+        ti[idx2 - USER0].ti_state = THREAD_STATE_ACTIVED;
+        add_tail(idx2, sched_bm[SCHED_BITMAP_ACTIVE], get_ti_prio(idx2), NB_WAIT_TASKS);
+        set_bit(get_ti_prio(idx2), sched_bm[SCHED_BITMAP_ACTIVE].map)
     }
     idx2 = 0;
 
-    ti[SOFTIRQ - USER0].ti_priority = PRI_MAX;
+    ti[SOFTIRQ - USER0].ti_priority = PRI_MAX
 }
 
 #endif /* _THREAD_INFO_ */

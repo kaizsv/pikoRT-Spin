@@ -52,7 +52,7 @@ inline tasklet_schedule(task, prio, tid)
 inline tasklet_first_entry(bm, prio, ret)
 {
     ret = bm.queue[prio * NB_WAIT_TASKLETS + 0];
-    assert(ret != UNKNOWN)
+    assert(ret == BH_SYSTICK)
 }
 
 /* copy from bitmap_queue_del besides the size of NB_WAIT_TASKLETS */
@@ -64,6 +64,7 @@ inline tasklet_queue_del(del, prio, bm, tid)
         AWAITS(tid, clear_bit(prio, bm.map))
     :: ELSE(tid, bm.queue[prio * NB_WAIT_TASKLETS + 0] == UNKNOWN)
     fi
+    // TODO: uncomment this line if more than one priority levels.
 //    prio = UNKNOWN
 }
 
@@ -72,7 +73,7 @@ inline tasklet_action(ret, tid)
     do
     :: SELE(tid, prio_tasklet.map != 0) ->
         AWAITS(tid, find_first_bit(prio_tasklet.map, max_prio, NBSOFTIRQ - 1));
-        AWAITS(tid, tasklet_first_entry(prio_tasklet, max_prio, ret); assert(ret == BH_SYSTICK));
+        AWAITS(tid, tasklet_first_entry(prio_tasklet, max_prio, ret));
         tasklet_queue_del(ret, max_prio, prio_tasklet, tid);
         /* the elected tasklet must be systick buttom half */
 

@@ -31,8 +31,7 @@ inline list_add_tail(new, stack, base, size)
         if
         :: stack.queue[base + idx] == UNKNOWN ->
             stack.queue[base + idx] = new; break
-        :: else ->
-            /* increase size if fail */
+        :: else -> /* increase size if fail */
             assert(idx < (size - 1) && stack.queue[base + idx] != new)
         fi
     }
@@ -49,8 +48,7 @@ inline list_del(del, stack, base, size)
         :: del_queue_check ->
             stack.queue[base + idx - 1] = stack.queue[base + idx];
             if
-            :: idx == (size - 1) ->
-                stack.queue[base + idx] = UNKNOWN
+            :: idx == (size - 1) -> stack.queue[base + idx] = UNKNOWN
             :: else
             fi
         :: else

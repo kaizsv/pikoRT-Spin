@@ -92,7 +92,7 @@ inline system_initialize()
         :: else
         fi
     }
-    idx = 0;
+    idx = 0
 }
 
 #endif /* _VARIABLES_ */

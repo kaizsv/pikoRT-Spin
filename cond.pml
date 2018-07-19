@@ -18,12 +18,11 @@ inline find_other_thread(ret)
         if
         :: cond_list.queue[idx] != UNKNOWN &&
            get_ti_private(cond_list.queue[idx]) == THREAD_PRIVATE_COND ->
-            ret = cond_list.queue[idx];
-            break
+            ret = cond_list.queue[idx]; break
         :: else
         fi
     }
-    idx = 0;
+    idx = 0
 }
 
 inline sys_pthread_cond_wait(tid)
@@ -31,7 +30,7 @@ inline sys_pthread_cond_wait(tid)
     AWAITS(tid, ti[curUser - USER0].ti_private = THREAD_PRIVATE_COND);
     AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_BLOCKED);
     AWAITS(tid, list_add_tail(curUser, cond_list, 0, NBCOND));
-    sys_pthread_mutex_unlock(tid);
+    sys_pthread_mutex_unlock(tid)
 
     /* XXX : There might be a context switch after sys_pthread_mutex_unlock
      *       the current user might be changed here.

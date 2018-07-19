@@ -52,8 +52,7 @@ inline find_next_thread(bm, ret, tid)
     AWAITS(tid, find_first_bit(bm.map, max_prio, PRI_MIN));
 
     if
-    :: SELE(tid, max_prio == NBITMAP_BIT) ->
-        /* empty bm.map */
+    :: SELE(tid, max_prio == NBITMAP_BIT) -> /* empty bm.map */
         AWAITS(tid, ret = IDLE_THREAD; max_prio = UNKNOWN)
     :: ELSE(tid, max_prio == NBITMAP_BIT) ->
         AWAITS(tid, bitmap_first_entry(bm, max_prio, ret); max_prio = UNKNOWN)
@@ -111,11 +110,10 @@ inline sched_bitmap_elect(flags, tid)
      * if necessary swap active and expire queue */
     compare_runqueues_to_swap(tid);
 
-    /* idle thread */
     if
     :: SELE(tid, nextUser != IDLE_THREAD) ->
         bitmap_queue_del(nextUser, get_ti_prio(nextUser), sched_bm[SCHED_BITMAP_ACTIVE], tid)
-    :: ELSE(tid, nextUser != IDLE_THREAD) -> assert(curUser != IDLE_THREAD)
+    :: ELSE(tid, nextUser != IDLE_THREAD) /* idle thread */
     fi;
 
 //  TODO: thread exit has not been implemented yet,
@@ -129,8 +127,7 @@ inline sched_bitmap_elect(flags, tid)
     :: ELSE(tid, flags == SCHED_OPT_TICK && curUser != IDLE_THREAD)
     fi;
     if
-    :: SELE(tid, nextUser != curUser) ->
-        /* context switch */
+    :: SELE(tid, nextUser != curUser) -> /* context switch */
         AWAITS(tid, switch_to(curUser));
         AWAITS(tid, curUser = nextUser; nextUser = UNKNOWN);
         AWAITS(tid, thread_restore(curUser); assert(curUser != UNKNOWN))
