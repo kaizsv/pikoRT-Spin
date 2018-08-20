@@ -44,7 +44,6 @@ $(OUT)_safety_dfs: $(OUT)
 $(OUT)_ltl_dfs: SPINFLAGS += -DLTL
 $(OUT)_ltl_dfs: $(OUT)
 
-safety_bfs: MLIMIT = 1024
 safety_bfs: clean $(OUT)_safety
 	./$(OUT)
 
