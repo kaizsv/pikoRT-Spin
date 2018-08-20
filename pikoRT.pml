@@ -226,7 +226,7 @@ inline sys_call(__svc_type, __svc_chan)
 
 proctype svc(chan svc_chan)
 {
-    byte idx, max_prio = UNKNOWN, nextUser;
+    byte idx, max_prio = UNKNOWN, nextUser = UNKNOWN;
     bool retPolicy, del_queue_check;
     mutex_head mutex_list;
     cond_head cond_list;
@@ -254,7 +254,7 @@ loop:
 
 proctype pendsv()
 {
-    byte idx, max_prio = UNKNOWN, nextUser;
+    byte idx, max_prio = UNKNOWN, nextUser = UNKNOWN;
     bool retPolicy, del_queue_check;
     assert(evalPID == PendSV);
 loop:

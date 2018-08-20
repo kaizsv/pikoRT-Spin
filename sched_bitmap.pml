@@ -49,7 +49,7 @@ inline bitmap_first_entry(bm, prio, ret)
 
 inline find_next_thread(bm, ret, tid)
 {
-    AWAITS(tid, find_first_bit(bm.map, max_prio, PRI_MIN));
+    AWAITS(tid, assert(ret == UNKNOWN); find_first_bit(bm.map, max_prio, PRI_MIN));
 
     if
     :: SELE(tid, max_prio == NBITMAP_BIT) -> /* empty bm.map */
@@ -68,7 +68,7 @@ inline compare_runqueues_to_swap(tid)
     /* if expire runqueue has elements, the max_prio will not be NBITMAP_BIT */
     if
     :: SELE(tid, nextUser == IDLE_THREAD && max_prio != NBITMAP_BIT) ->
-        AWAITS(tid, swap_sched_state_map());
+        AWAITS(tid, nextUser = UNKNOWN; swap_sched_state_map());
         find_next_thread(sched_bm[SCHED_BITMAP_ACTIVE], nextUser, tid)
     :: ELSE(tid, nextUser == IDLE_THREAD && max_prio != NBITMAP_BIT) ->
         max_prio = UNKNOWN
@@ -131,7 +131,8 @@ inline sched_bitmap_elect(flags, tid)
         AWAITS(tid, switch_to(curUser));
         AWAITS(tid, curUser = nextUser; nextUser = UNKNOWN);
         AWAITS(tid, thread_restore(curUser); assert(curUser != UNKNOWN))
-    :: ELSE(tid, nextUser != curUser)
+    :: ELSE(tid, nextUser != curUser) ->
+        nextUser = UNKNOWN
     fi
 }
 
