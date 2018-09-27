@@ -6,6 +6,8 @@
 #include "ti.pml"
 #include "sched.pml"
 
+bit runqueue_check = 0;
+
 /* XXX: increase NB_WAIT_TASKS if more than two user tasks are
  *      in the same priority */
 #define NB_WAIT_TASKS 3
@@ -76,8 +78,24 @@ inline compare_runqueues_to_swap(tid)
     fi
 }
 
+inline check_runqueue(new, prio)
+{
+    for (idx: 0 .. (NB_WAIT_TASKS - 1)) {
+        if
+        :: runqueue_check == 1 -> break
+        :: sched_bm[SCHED_BITMAP_EXPIRE].queue[prio * NB_WAIT_TASKS + idx] == new ->
+            runqueue_check = 1
+        :: sched_bm[SCHED_BITMAP_ACTIVE].queue[prio * NB_WAIT_TASKS + idx] == new ->
+            runqueue_check = 1
+        :: else
+        fi
+    }
+    idx = 0;
+}
+
 inline sched_bitmap_enqueue(new, prio, tid)
 {
+    AWAITS(tid, check_runqueue(new, prio));
     add_tail(new, sched_bm[SCHED_BITMAP_ACTIVE], prio, NB_WAIT_TASKS, tid);
     AWAITS(tid, set_bit(prio, sched_bm[SCHED_BITMAP_ACTIVE].map))
 }
@@ -124,6 +142,7 @@ inline sched_bitmap_elect(flags, tid)
     if
     :: SELE(tid, flags == SCHED_OPT_TICK) ->
         /* task enqueue to SCHED_BITMAP_EXPIRE */
+        AWAITS(tid, check_runqueue(curUser, get_ti_prio(curUser)));
         add_tail(curUser, sched_bm[SCHED_BITMAP_EXPIRE], get_ti_prio(curUser), NB_WAIT_TASKS, tid);
         AWAITS(tid, set_bit(get_ti_prio(curUser), sched_bm[SCHED_BITMAP_EXPIRE].map));
         AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_EXPIRED)

@@ -3,6 +3,7 @@
 
 #include "variables.pml"
 #include "ti.pml"
+#include "sched_bitmap.pml"
 
 bit sys_pseudo_timer = 0;
 
@@ -17,6 +18,7 @@ inline systick_bh()
         sys_pseudo_timer = 0;
         /* sched_enqueue(producer, tid) */
         ti[USER0 + 1 - USER0].ti_state = THREAD_STATE_ACTIVED;
+        check_runqueue(USER0 + 1, get_ti_prio(USER0 + 1));
         ti_add_tail(USER0 + 1, sched_bm[SCHED_BITMAP_ACTIVE], get_ti_prio(USER0 + 1), NB_WAIT_TASKS);
         set_bit(get_ti_prio(USER0 + 1), sched_bm[SCHED_BITMAP_ACTIVE].map)
     :: else
