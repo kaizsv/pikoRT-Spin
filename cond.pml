@@ -7,10 +7,31 @@
 #include "sched.pml"
 #include "mutex.pml"
 
-#define NBCOND 2
 typedef cond_head {
     byte queue[NBCOND] = UNKNOWN
 };
+bit list_check = 0;
+
+inline check_list(elem, same_list, same_size, diff_list, diff_size)
+{
+    for (idx: 0 .. (same_size - 1)) {
+        if
+        :: list_check -> break
+        :: same_list.queue[idx] == elem ->
+            list_check = 1
+        :: else
+        fi
+    }
+    for (idx: 0 .. (diff_size - 1)) {
+        if
+        :: list_check -> break
+        :: diff_list.queue[idx] == elem ->
+            list_check = 1
+        :: else
+        fi
+    }
+    idx = 0;
+}
 
 inline find_other_thread(ret, tid)
 {
@@ -30,7 +51,7 @@ inline find_other_thread(ret, tid)
 inline sys_pthread_cond_wait(tid)
 {
     AWAITS(tid, ti[curUser - USER0].ti_private = THREAD_PRIVATE_COND);
-    AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_BLOCKED);
+    AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_BLOCKED; check_list(curUser, cond_list, NBCOND, mutex_list, NBMUTEX));
     list_add_tail(curUser, cond_list, 0, NBCOND, tid);
     sys_pthread_mutex_unlock(tid)
 

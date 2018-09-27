@@ -7,6 +7,7 @@
 #include "helper.pml"
 
 #define NBMUTEX 2
+#define NBCOND 2
 typedef mutex_head {
     byte queue[NBMUTEX] = UNKNOWN
 };
@@ -38,7 +39,7 @@ inline sys_pthread_mutex_lock(tid)
     if
     :: SELE(tid, mutex > 0) ->
         AWAITS(tid, ti[curUser - USER0].ti_private = THREAD_PRIVATE_MUTEX);
-        AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_BLOCKED);
+        AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_BLOCKED; check_list(curUser, mutex_list, NBMUTEX, cond_list, NBCOND));
         list_add_tail(curUser, mutex_list, 0, NBMUTEX, tid);
         sched_elect(SCHED_OPT_NONE, tid)
     :: ELSE(tid, mutex > 0)
