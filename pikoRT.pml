@@ -11,6 +11,7 @@
 #endif
 
 bit data_ready, cs_c, cs_p;
+bit race_condition_check = 0;
 
 #define get_pending(irq, pending) get_bit(irq - 2, pending)
 
@@ -300,6 +301,14 @@ iret:
     goto loop
 }
 
+inline check_rc(another_cs)
+{
+    if
+    :: another_cs -> race_condition_check = 1;
+    :: else
+    fi
+}
+
 proctype consumer(chan svc_chan)
 {
     bit ne;
@@ -316,8 +325,8 @@ loop:
         fi )
     od;
 cs:
-    A_AWAITS(evalPID, d_step { assert(!cs_p); data_ready = 0 } );
-    A_AWAITS(evalPID, assert(!cs_p); sys_call(SYS_COND_SIGNAL, svc_chan));
+    A_AWAITS(evalPID, check_rc(cs_p); assert(!race_condition_check); data_ready = 0);
+    A_AWAITS(evalPID, check_rc(cs_p); assert(!race_condition_check); sys_call(SYS_COND_SIGNAL, svc_chan));
     mutex_unlock(mutex, cs_c, svc_chan, evalPID);
 
     goto loop
@@ -340,8 +349,8 @@ loop:
         fi )
     od;
 cs:
-    A_AWAITS(evalPID, d_step { assert(!cs_c); data_ready = 1 } );
-    A_AWAITS(evalPID, assert(!cs_c); sys_call(SYS_COND_SIGNAL, svc_chan));
+    A_AWAITS(evalPID, check_rc(cs_c); assert(!race_condition_check); data_ready = 1);
+    A_AWAITS(evalPID, check_rc(cs_c); assert(!race_condition_check); sys_call(SYS_COND_SIGNAL, svc_chan));
     mutex_unlock(mutex, cs_p, svc_chan, evalPID);
 
     goto loop
