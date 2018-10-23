@@ -7,6 +7,7 @@
 #include "sched.pml"
 
 bit runqueue_check = 0;
+bit idle_check = 0;
 
 /* XXX: increase NB_WAIT_TASKS if more than two user tasks are
  *      in the same priority */
@@ -132,7 +133,8 @@ inline sched_bitmap_elect(flags, tid)
     if
     :: SELE(tid, nextUser != IDLE_THREAD) ->
         bitmap_queue_del(nextUser, get_ti_prio(nextUser), sched_bm[SCHED_BITMAP_ACTIVE], tid)
-    :: ELSE(tid, nextUser != IDLE_THREAD) /* idle thread */
+    :: ELSE(tid, nextUser != IDLE_THREAD) -> /* idle thread */
+        idle_check = 1;
     fi;
 
 //  TODO: thread exit has not been implemented yet,
