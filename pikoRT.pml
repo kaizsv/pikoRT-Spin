@@ -7,7 +7,7 @@
 #include "cond.pml"
 
 #ifdef LTL
-#include "pikoRT.prp"
+#include "specifications.pml"
 #endif
 
 bit data_ready, cs_c, cs_p;
@@ -274,6 +274,7 @@ loop:
     ITake(evalPID);
     tasklet_schedule(BH_SYSTICK, TIMER_SOFTIRQ_PRIO, evalPID);
     AWAITS(evalPID, PendSV_pending = 1);
+iret:
     AWAITS(evalPID, IRet());
 
     goto loop
@@ -290,6 +291,7 @@ loop:
      * this isr will not influence the scheduling behavior
      * only updates charactor buffer and calls an empty callback func */
     skip;
+iret:
     AWAITS(evalPID, IRet());
 
     goto loop

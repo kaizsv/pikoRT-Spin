@@ -9,7 +9,7 @@ Make sure you have enough RAM on your machine. 52G is the default setting and ca
 A complete check using DFS or BFS algorithms, the default setting of memory limit is 52GB and search depth is 100,000,000.
 
 ### LTL acceptance cycles
-There are two LTL propertyies, starvation_free and deadlock_free. You can find the properties name in the ```pikoRT.prp``` file or write your own properties. <br />
+There are two LTL propertyies, starvation_free and deadlock_free. You can find the properties name in the ```specifications.pml``` file or write your own properties. <br />
 ```make acceptance_ltl_full CLAIM=<propertie name>``` or ```make ltl_deadlock_free```
 
 ## Documents

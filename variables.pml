@@ -8,7 +8,7 @@
  *
  * Warning:
  * The number of users and interrupts must smaller or equal than seven.
- * To simplify the verification result, this model use bitwise operator 
+ * To simplify the verification result, this model use bitwise operator
  * to repesent the usage of arrays. Change partial variables' datatype
  * from "byte" to "short" if you want to verify more processes.
  *
