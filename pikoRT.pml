@@ -110,16 +110,14 @@ inline interrupt_policy(preempt, running, ret)
     :: else ->
         /* nested interrupt: running < USER0
          * compare the priority of pending and preemtive exception */
+        assert(ret == false && !get_pending(preempt, ghost_direct_AT));
         set_pending(preempt, irq_pending);
-        get_max_pending(max_prio);
         if
-        :: irq_prio[max_prio] < irq_prio[running] ->
+        :: irq_prio[preempt] < irq_prio[running] ->
             /* preempt directly, and not from irq_pending */
-            assert(!get_pending(preempt, ghost_direct_AT) && preempt == max_prio);
             ret = true
-        :: else -> assert(ret == false)
-        fi;
-        max_prio = UNKNOWN
+        :: else
+        fi
     fi
 }
 
