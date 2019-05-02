@@ -5,7 +5,7 @@
 #include "helper.pml"
 #include "sched.pml"
 #include "sched_bitmap.pml"
-//#include "systick.pml"
+#include "systick.pml"
 
 #define PRIO_TASKLET_MINPRIO 31
 #define TIMER_SOFTIRQ_PRIO 0
@@ -90,7 +90,7 @@ inline tasklet_action(ret, tid)
          *
          * TODO: Moreover, uncomment the reset of prio at tasklet_queue_del.
          */
-        //systick_bh(tid)
+        AWAITS(tid, systick_bh())
     :: ELSE(tid, prio_tasklet.map != 0) ->
         A_AWAITS(tid, ret = NO_BH_TASK; break)
     od

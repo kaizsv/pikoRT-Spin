@@ -35,7 +35,7 @@ inline list_add_tail(new, stack, base, size, tid)
             AWAITS(tid, stack.queue[base + idx] = new);
             A_AWAITS(tid, break)
         :: ELSE(tid, stack.queue[base + idx] == UNKNOWN) ->
-            assert(idx < (size - 1) && stack.queue[base + idx] != new)
+            assert(idx < (size - 1))
         fi
     }
     A_AWAITS(tid, idx = 0)
