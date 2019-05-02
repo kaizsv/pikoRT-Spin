@@ -28,7 +28,6 @@
 
 #include "variables.pml"
 #include "sched.pml"
-#include "sched_bitmap.pml"
 
 typedef thread_info {
     bit ti_private
@@ -36,6 +35,20 @@ typedef thread_info {
     byte ti_state = THREAD_STATE_NEW
 };
 thread_info ti[NBUSERS + 1];
+
+inline ti_add_tail(new, bm, prio, size)
+{
+    assert(prio < NBITMAP_BIT);
+    for (idx: 0 .. (size - 1)) {
+        if
+        :: bm.queue[prio * size + idx] == UNKNOWN ->
+            bm.queue[prio * size + idx] = new; break
+        :: else -> /* increase size if fail */
+            assert(idx < (size - 1) && bm.queue[prio * size + idx] != new)
+        fi
+    }
+    idx = 0
+}
 
 inline thread_info_initialize()
 {
@@ -48,7 +61,7 @@ inline thread_info_initialize()
     for (idx2: (USER0 + 1) .. (SOFTIRQ - 1)) {
         /* sched_enqueue(idx2, AT): prevent nested d_step */
         ti[idx2 - USER0].ti_state = THREAD_STATE_ACTIVED;
-        add_tail(idx2, sched_bm[SCHED_BITMAP_ACTIVE], get_ti_prio(idx2), NB_WAIT_TASKS);
+        ti_add_tail(idx2, sched_bm[SCHED_BITMAP_ACTIVE], get_ti_prio(idx2), NB_WAIT_TASKS);
         set_bit(get_ti_prio(idx2), sched_bm[SCHED_BITMAP_ACTIVE].map)
     }
     idx2 = 0;

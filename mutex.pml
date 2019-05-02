@@ -17,18 +17,19 @@ short mutex = -1;
 /* local monitor for r0 in mutex.pml */
 bit local_monitor;
 
-inline find_first_blocking_task(ret)
+inline find_first_blocking_task(ret, tid)
 {
     for (idx: 0 .. (NBMUTEX - 1)) {
         if
-        :: mutex_list.queue[idx] != UNKNOWN &&
-           get_ti_private(mutex_list.queue[idx]) == THREAD_PRIVATE_MUTEX ->
-            ret = mutex_list.queue[idx]; break
-        :: else
+        :: SELE(tid, mutex_list.queue[idx] != UNKNOWN &&
+           get_ti_private(mutex_list.queue[idx]) == THREAD_PRIVATE_MUTEX) ->
+            AWAITS(tid, ret = mutex_list.queue[idx]);
+            A_AWAITS(tid, break)
+        :: ELSE(tid, mutex_list.queue[idx] != UNKNOWN &&
+           get_ti_private(mutex_list.queue[idx]) == THREAD_PRIVATE_MUTEX)
         fi
     }
-    idx = 0;
-    assert(ret != UNKNOWN)
+    A_AWAITS(tid, idx = 0; assert(ret != UNKNOWN))
 }
 
 inline sys_pthread_mutex_lock(tid)
@@ -38,7 +39,7 @@ inline sys_pthread_mutex_lock(tid)
     :: SELE(tid, mutex > 0) ->
         AWAITS(tid, ti[curUser - USER0].ti_private = THREAD_PRIVATE_MUTEX);
         AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_BLOCKED);
-        AWAITS(tid, list_add_tail(curUser, mutex_list, 0, NBMUTEX));
+        list_add_tail(curUser, mutex_list, 0, NBMUTEX, tid);
         sched_elect(SCHED_OPT_NONE, tid)
     :: ELSE(tid, mutex > 0)
     fi
@@ -49,8 +50,8 @@ inline sys_pthread_mutex_unlock(tid)
     AWAITS(tid, assert(mutex > -1 && max_prio == UNKNOWN); mutex = mutex - 1);
     if
     :: SELE(tid, mutex >= 0) ->
-        AWAITS(tid, find_first_blocking_task(max_prio));
-        AWAITS(tid, list_del(max_prio, mutex_list, 0, NBMUTEX));
+        find_first_blocking_task(max_prio,tid);
+        list_del(max_prio, mutex_list, 0, NBMUTEX, tid);
         sched_enqueue(max_prio, tid)
     :: ELSE(tid, mutex >= 0)
     fi;

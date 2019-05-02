@@ -35,10 +35,10 @@ inline swap_sched_state_map()
     SCHED_STATE_MAP = SCHED_STATE_MAP ^ 1
 }
 
-inline add_tail(new, bm, prio, size)
+inline add_tail(new, bm, prio, size, tid)
 {
     assert(prio < NBITMAP_BIT);
-    list_add_tail(new, bm, prio * size, size)
+    list_add_tail(new, bm, prio * size, size, tid)
 }
 
 inline bitmap_first_entry(bm, prio, ret)
@@ -49,7 +49,8 @@ inline bitmap_first_entry(bm, prio, ret)
 
 inline find_next_thread(bm, ret, tid)
 {
-    AWAITS(tid, assert(ret == UNKNOWN); find_first_bit(bm.map, max_prio, PRI_MIN));
+    AWAITS(tid, assert(ret == UNKNOWN));
+    find_first_bit(bm.map, max_prio, PRI_MIN, tid);
 
     if
     :: SELE(tid, max_prio == NBITMAP_BIT) -> /* empty bm.map */
@@ -63,7 +64,7 @@ inline find_next_thread(bm, ret, tid)
  * to prevent the usage of tempUser variable. */
 inline compare_runqueues_to_swap(tid)
 {
-    AWAITS(tid, find_first_bit(sched_bm[SCHED_BITMAP_EXPIRE].map, max_prio, PRI_MIN));
+    find_first_bit(sched_bm[SCHED_BITMAP_EXPIRE].map, max_prio, PRI_MIN, tid);
 
     /* if expire runqueue has elements, the max_prio will not be NBITMAP_BIT */
     if
@@ -77,13 +78,13 @@ inline compare_runqueues_to_swap(tid)
 
 inline sched_bitmap_enqueue(new, prio, tid)
 {
-    AWAITS(tid, add_tail(new, sched_bm[SCHED_BITMAP_ACTIVE], prio, NB_WAIT_TASKS));
+    add_tail(new, sched_bm[SCHED_BITMAP_ACTIVE], prio, NB_WAIT_TASKS, tid);
     AWAITS(tid, set_bit(prio, sched_bm[SCHED_BITMAP_ACTIVE].map))
 }
 
 inline bitmap_queue_del(del, prio, bm, tid)
 {
-    AWAITS(tid, list_del(del, bm, prio * NB_WAIT_TASKS, NB_WAIT_TASKS));
+    list_del(del, bm, prio * NB_WAIT_TASKS, NB_WAIT_TASKS, tid);
     if
     :: SELE(tid, bm.queue[prio * NB_WAIT_TASKS + 0] == UNKNOWN) ->
         /* list empty */
@@ -121,7 +122,7 @@ inline sched_bitmap_elect(flags, tid)
     if
     :: SELE(tid, flags == SCHED_OPT_TICK && curUser != IDLE_THREAD) ->
         /* task enqueue to SCHED_BITMAP_EXPIRE */
-        AWAITS(tid, add_tail(curUser, sched_bm[SCHED_BITMAP_EXPIRE], get_ti_prio(curUser), NB_WAIT_TASKS));
+        add_tail(curUser, sched_bm[SCHED_BITMAP_EXPIRE], get_ti_prio(curUser), NB_WAIT_TASKS, tid);
         AWAITS(tid, set_bit(get_ti_prio(curUser), sched_bm[SCHED_BITMAP_EXPIRE].map));
         AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_EXPIRED)
     :: ELSE(tid, flags == SCHED_OPT_TICK && curUser != IDLE_THREAD)

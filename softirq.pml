@@ -29,7 +29,7 @@ inline tasklet_bitmap_enqueue(new, prio, tid)
 {
     if
     :: SELE(tid, prio_tasklet.map == 0) ->
-        AWAITS(tid, add_tail(new, prio_tasklet, prio, NB_WAIT_TASKLETS));
+        add_tail(new, prio_tasklet, prio, NB_WAIT_TASKLETS, tid);
         AWAITS(tid, set_bit(prio, prio_tasklet.map))
     :: ELSE(tid, prio_tasklet.map == 0)
     fi
@@ -58,7 +58,7 @@ inline tasklet_first_entry(bm, prio, ret)
 /* copy from bitmap_queue_del besides the size of NB_WAIT_TASKLETS */
 inline tasklet_queue_del(del, prio, bm, tid)
 {
-    AWAITS(tid, list_del(del, bm, prio * NB_WAIT_TASKLETS, NB_WAIT_TASKLETS));
+    list_del(del, bm, prio * NB_WAIT_TASKLETS, NB_WAIT_TASKLETS, tid);
     if
     :: SELE(tid, bm.queue[prio * NB_WAIT_TASKLETS + 0] == UNKNOWN) ->
         AWAITS(tid, clear_bit(prio, bm.map))
@@ -72,7 +72,7 @@ inline tasklet_action(ret, tid)
 {
     do
     :: SELE(tid, prio_tasklet.map != 0) ->
-        AWAITS(tid, find_first_bit(prio_tasklet.map, max_prio, NBSOFTIRQ - 1));
+        find_first_bit(prio_tasklet.map, max_prio, NBSOFTIRQ - 1, tid);
         AWAITS(tid, tasklet_first_entry(prio_tasklet, max_prio, ret));
         tasklet_queue_del(ret, max_prio, prio_tasklet, tid);
         /* the elected tasklet must be systick buttom half */
