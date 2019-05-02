@@ -120,19 +120,19 @@ inline sched_bitmap_elect(flags, tid)
 //  TODO: thread exit has not been implemented yet,
 //        comment to prevent unreached statement
     if
-    :: SELE(tid, flags == SCHED_OPT_TICK && curUser != IDLE_THREAD) ->
+    :: SELE(tid, nextUser != curUser && nextUser != IDLE_THREAD) ->
+    if
+    :: SELE(tid, flags == SCHED_OPT_TICK) ->
         /* task enqueue to SCHED_BITMAP_EXPIRE */
         add_tail(curUser, sched_bm[SCHED_BITMAP_EXPIRE], get_ti_prio(curUser), NB_WAIT_TASKS, tid);
         AWAITS(tid, set_bit(get_ti_prio(curUser), sched_bm[SCHED_BITMAP_EXPIRE].map));
         AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_EXPIRED)
-    :: ELSE(tid, flags == SCHED_OPT_TICK && curUser != IDLE_THREAD)
+    :: ELSE(tid, flags == SCHED_OPT_TICK)
     fi;
-    if
-    :: SELE(tid, nextUser != curUser) -> /* context switch */
         AWAITS(tid, switch_to(curUser));
         AWAITS(tid, curUser = nextUser; nextUser = UNKNOWN);
         AWAITS(tid, thread_restore(curUser); assert(curUser != UNKNOWN))
-    :: ELSE(tid, nextUser != curUser) ->
+    :: ELSE(tid, nextUser != curUser && nextUser != IDLE_THREAD) ->
         nextUser = UNKNOWN
     fi
 }
