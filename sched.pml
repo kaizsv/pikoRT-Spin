@@ -49,7 +49,11 @@ inline sched_dequeue(del, tid)
 inline sched_elect(flags, tid)
 {
     sched_bitmap_elect(flags, tid);
-    AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_RUNNING)
+    if
+    :: SELE(tid, curUser != IDLE_THREAD) ->
+        AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_RUNNING)
+    :: ELSE(tid, curUser != IDLE_THREAD)
+    fi
 }
 
 #endif /* _SCHED_ */

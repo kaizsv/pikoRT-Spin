@@ -54,7 +54,7 @@
 #define _VARIABLES_
 
 mtype:svc_t = { SYS_MUTEX_LOCK, SYS_MUTEX_UNLOCK, SYS_PTHREAD_YIELD,
-                SYS_COND_WAIT, SYS_COND_SIGNAL };
+                SYS_COND_WAIT, SYS_COND_SIGNAL, SYS_PSEUDO_SLEEP };
 
 bit PendSV_pending = 0;
 unsigned irq_pending : NBINTS = 0;
@@ -67,13 +67,14 @@ byte curUser = USER0;
 
 inline switch_to(proc)
 {
-    assert(USER0 <= proc && proc <= SOFTIRQ && ATTop == 0);
-    assert(proc == ATStack[ATTop])
+    assert((USER0 <= proc && proc <= SOFTIRQ) || proc == IDLE_THREAD);
+    assert(proc == ATStack[ATTop] && ATTop == 0)
 }
 
 inline thread_restore(proc)
 {
-    assert(USER0 <= proc && proc <= SOFTIRQ && ATTop == 0);
+    assert((USER0 <= proc && proc <= SOFTIRQ) || proc == IDLE_THREAD);
+    assert(ATTop == 0);
     ATStack[ATTop] = proc;
     for (idx: 1 .. (NBATSTACK - 1)) {
         assert(ATStack[idx] == UNKNOWN)

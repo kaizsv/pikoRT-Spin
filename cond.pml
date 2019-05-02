@@ -7,7 +7,7 @@
 #include "sched.pml"
 #include "mutex.pml"
 
-#define NBCOND 1
+#define NBCOND 2
 typedef cond_head {
     byte queue[NBCOND] = UNKNOWN
 };

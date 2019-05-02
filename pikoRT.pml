@@ -244,6 +244,11 @@ loop:
     :: SELE(evalPID, svc_type == SYS_PTHREAD_YIELD) ->
         sched_enqueue(curUser, evalPID);
         sched_elect(SCHED_OPT_NONE, evalPID)
+    :: SELE(evalPID, svc_type == SYS_PSEUDO_SLEEP) ->
+        /* XXX: To simplify, only producer can be move out of runqueue. */
+        AWAITS(evalPID, sys_pseudo_timer = 1);
+        sched_dequeue(USER0 + 1, evalPID);
+        sched_elect(SCHED_OPT_NONE, evalPID)
     fi;
     AWAITS(evalPID, IRet());
 
@@ -323,6 +328,7 @@ proctype producer(chan svc_chan)
     bit ne;
     assert(USER0 <= evalPID && evalPID < SOFTIRQ);
 loop:
+    A_AWAITS(evalPID, sys_call(SYS_PSEUDO_SLEEP, svc_chan));
     mutex_lock(mutex, cs_p, svc_chan, evalPID);
     do
     :: A_AWAITS(evalPID,
