@@ -7,7 +7,7 @@
 #include "helper.pml"
 
 #define NBMUTEX 2
-#define NBCOND 2
+#define NBCOND 8
 typedef mutex_head {
     byte queue[NBMUTEX] = UNKNOWN
 };

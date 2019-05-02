@@ -52,7 +52,6 @@ inline bitmap_first_entry(bm, prio, ret)
 
 inline find_next_thread(bm, ret, tid)
 {
-    AWAITS(tid, assert(ret == UNKNOWN));
     find_first_bit(bm.map, max_prio, PRI_MIN, tid);
 
     if

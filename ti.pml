@@ -44,7 +44,7 @@ inline ti_add_tail(new, bm, prio, size)
         :: bm.queue[prio * size + idx] == UNKNOWN ->
             bm.queue[prio * size + idx] = new; break
         :: else -> /* increase size if fail */
-            assert(idx < (size - 1) && bm.queue[prio * size + idx] != new)
+            assert(idx < (size - 1))
         fi
     }
     idx = 0

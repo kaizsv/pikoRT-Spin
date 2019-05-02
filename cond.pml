@@ -42,7 +42,7 @@ inline find_other_thread(ret, tid)
             AWAITS(tid, ret = cond_list.queue[idx]);
             A_AWAITS(tid, break)
         :: ELSE(tid, cond_list.queue[idx] != UNKNOWN &&
-           get_ti_private(cond_list.queue[idx]) == THREAD_PRIVATE_COND) ->
+           get_ti_private(cond_list.queue[idx]) == THREAD_PRIVATE_COND)
         fi
     }
     A_AWAITS(tid, idx = 0)
