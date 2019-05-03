@@ -57,6 +57,7 @@ mtype:svc_t = { SYS_MUTEX_LOCK, SYS_MUTEX_UNLOCK, SYS_PTHREAD_YIELD,
                 SYS_COND_WAIT, SYS_COND_SIGNAL };
 
 bit PendSV_pending = 0;
+bit PendSV_ghost_direct_AT = 0;
 unsigned irq_pending : NBINTS = 0;
 unsigned ghost_direct_AT : NBINTS = 0;
 byte irq_prio[NBINTS + 2] = 16;
