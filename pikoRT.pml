@@ -35,8 +35,14 @@ inline get_max_pending(ret)
 {
     assert(ret == UNKNOWN);
     /* SVC will not be pending, and pending of PendSV has no effect here */
-    for (idx: 2 .. (USER0 - 1)) {
+    for (idx: 1 .. (USER0 - 1)) {
         if
+        :: idx == 1 ->
+            if
+            :: PendSV_pending && ret == UNKNOWN && ATStack[1] != PendSV ->
+                ret = idx
+            :: else
+            fi
         :: get_pending(idx, irq_pending) && ret == UNKNOWN ->
             ret = idx
         :: get_pending(idx, irq_pending) && (irq_prio[idx] < irq_prio[ret]) ->
@@ -52,9 +58,15 @@ inline get_max_pending(ret)
 /* similar to tail-chaining */
 inline change_AT_directly(proc)
 {
-    assert(PendSV < proc && proc < USER0);
-    assert(ghost_direct_AT < (1 << (proc - 2)));
-    set_pending(proc, ghost_direct_AT);
+    assert(PendSV <= proc && proc < USER0);
+    //assert(ghost_direct_AT < (1 << (proc - 2)));
+    if
+    :: proc == PendSV ->
+        PendSV_ghost_direct_AT = 1
+    :: else ->
+        set_pending(proc, ghost_direct_AT);
+    fi
+
     AT = proc
 }
 
@@ -164,10 +176,17 @@ inline PendSVTake()
     do
     :: atomic {
         if
+        :: PendSV_pending && (AT == PendSV) ->
+            d_step {
+                assert(PendSV_ghost_direct_AT);
+                inATStack(PendSV);
+                PendSV_pending = 0;
+                PendSV_ghost_direct_AT = 0
+            }; break
         :: PendSV_pending && (AT >= USER0) ->
             d_step {
                 inATStack(PendSV);
-                assert(ATTop <= 0);
+                assert(ATTop <= 0 && AT != PendSV);
                 push_and_change_AT(PendSV);
                 PendSV_pending = 0
             }; break
