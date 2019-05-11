@@ -46,9 +46,20 @@ inline sched_dequeue(del, tid)
     fi
 }
 
+bit switching_check = 0;
+inline check_switching()
+{
+    if
+    :: nextUser == IDLE_THREAD && curUser != IDLE_THREAD ->
+        switching_check = 1
+    :: else
+    fi
+}
+
 inline sched_elect(flags, tid)
 {
     sched_bitmap_elect(flags, tid);
+    d_step { check_switching() };
     if
     :: SELE(tid, curUser != IDLE_THREAD) ->
         AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_RUNNING)

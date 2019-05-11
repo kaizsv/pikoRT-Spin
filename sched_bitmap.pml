@@ -150,10 +150,9 @@ inline sched_bitmap_elect(flags, tid)
     :: ELSE(tid, flags == SCHED_OPT_TICK)
     fi;
         AWAITS(tid, switch_to(curUser));
-        AWAITS(tid, curUser = nextUser; nextUser = UNKNOWN);
+        AWAITS(tid, curUser = nextUser);
         AWAITS(tid, thread_restore(curUser); assert(curUser != UNKNOWN))
-    :: ELSE(tid, nextUser != curUser && nextUser != IDLE_THREAD) ->
-        nextUser = UNKNOWN
+    :: ELSE(tid, nextUser != curUser && nextUser != IDLE_THREAD)
     fi
 }
 
