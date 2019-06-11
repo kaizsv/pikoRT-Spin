@@ -111,6 +111,46 @@ lock_1:
     )
 }
 
+/* return value 0 means trylock not successes while 1 means trylock success. */
+inline mutex_trylock(__mutex, cs, ret, tid)
+{
+trylock_0:
+    AWAITS(tid, local_monitor = 1);            // ldrex r1, [r0]
+    AWAITS(tid,                                // teq r1, #-1
+        if
+        :: __mutex != -1 -> ne = 1
+        :: else -> ne = 0
+        fi
+    );
+    A_AWAITS(tid,                              // bne 1f
+        if
+        :: ne == 1 -> goto trylock_1
+        :: else
+        fi
+    );
+    AWAITS(tid,                                // strex r1, r2, [r0]
+        if
+        :: local_monitor == 1 ->
+            assert(__mutex == -1 && cs == 0);
+            __mutex = 0; local_monitor = 0; cs = 1
+        :: else -> ne = 1
+        fi
+    );
+    A_AWAITS(tid,                              // teq r1, #0
+        if
+        :: ne == 1 -> goto trylock_1           // bne 1f
+        :: else -> ne = 0; ret = 1          // movs r0, #0   @ trylock success
+        fi
+    );
+trylock_1:
+    AWAITS(tid,
+        if
+        :: ne == 1 -> ret = 0               // movs r0, #-1  @ trylock not success
+        :: else
+        fi
+    )
+}
+
 inline mutex_unlock(__mutex, cs, _chan, tid)
 {
 unlock_0:

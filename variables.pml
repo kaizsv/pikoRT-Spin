@@ -53,8 +53,7 @@
 #ifndef _VARIABLES_
 #define _VARIABLES_
 
-mtype:svc_t = { SYS_MUTEX_LOCK, SYS_MUTEX_UNLOCK, SYS_PTHREAD_YIELD,
-                SYS_COND_WAIT, SYS_COND_SIGNAL };
+mtype:svc_t = { SYS_MUTEX_LOCK, SYS_MUTEX_UNLOCK, SYS_PTHREAD_YIELD }
 
 bit PendSV_pending = 0;
 bit PendSV_ghost_direct_AT = 0;

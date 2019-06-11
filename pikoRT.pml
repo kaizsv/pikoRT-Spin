@@ -4,7 +4,6 @@
 #include "sched.pml"
 #include "softirq.pml"
 #include "mutex.pml"
-#include "cond.pml"
 
 #ifdef LTL
 #include "specifications.pml"
@@ -246,7 +245,6 @@ proctype svc(chan svc_chan)
     byte idx, max_prio = UNKNOWN, nextUser = UNKNOWN;
     bool retPolicy, del_queue_check;
     mutex_head mutex_list;
-    cond_head cond_list;
     mtype:svc_t svc_type;
     assert(evalPID == SVC);
 loop:
@@ -256,10 +254,6 @@ loop:
         sys_pthread_mutex_lock(evalPID)
     :: SELE(evalPID, svc_type == SYS_MUTEX_UNLOCK) ->
         sys_pthread_mutex_unlock(evalPID)
-    :: SELE(evalPID, svc_type == SYS_COND_WAIT) ->
-        sys_pthread_cond_wait(evalPID)
-    :: SELE(evalPID, svc_type == SYS_COND_SIGNAL) ->
-        sys_pthread_cond_signal(evalPID)
     :: SELE(evalPID, svc_type == SYS_PTHREAD_YIELD) ->
         sched_enqueue(curUser, evalPID);
         sched_elect(SCHED_OPT_NONE, evalPID)
@@ -320,18 +314,8 @@ proctype consumer(chan svc_chan)
     assert(USER0 <= evalPID && evalPID < SOFTIRQ);
 loop:
     mutex_lock(mutex, cs_c, svc_chan, evalPID);
-    do
-    :: A_AWAITS(evalPID,
-        if
-        :: !data_ready ->
-            cs_c = 0; sys_call(SYS_COND_WAIT, svc_chan);
-            sys_call(SYS_MUTEX_LOCK, svc_chan); cs_c = 1
-        :: else -> break
-        fi )
-    od;
 cs:
     A_AWAITS(evalPID, d_step { assert(!cs_p); data_ready = 0 } );
-    A_AWAITS(evalPID, assert(!cs_p); sys_call(SYS_COND_SIGNAL, svc_chan));
     mutex_unlock(mutex, cs_c, svc_chan, evalPID);
 
     goto loop
@@ -343,18 +327,8 @@ proctype producer(chan svc_chan)
     assert(USER0 <= evalPID && evalPID < SOFTIRQ);
 loop:
     mutex_lock(mutex, cs_p, svc_chan, evalPID);
-    do
-    :: A_AWAITS(evalPID,
-        if
-        :: data_ready ->
-            cs_p = 0; sys_call(SYS_COND_WAIT, svc_chan);
-            sys_call(SYS_MUTEX_LOCK, svc_chan); cs_p = 1
-        :: else -> break
-        fi )
-    od;
 cs:
     A_AWAITS(evalPID, d_step { assert(!cs_c); data_ready = 1 } );
-    A_AWAITS(evalPID, assert(!cs_c); sys_call(SYS_COND_SIGNAL, svc_chan));
     mutex_unlock(mutex, cs_p, svc_chan, evalPID);
 
     goto loop
