@@ -29,6 +29,8 @@
 #include "variables.pml"
 #include "sched_bitmap.pml"
 
+bit scheduler_check = 0;
+
 inline sched_enqueue(new, tid)
 {
     AWAITS(tid, ti[new - USER0].ti_state = THREAD_STATE_ACTIVED);
@@ -48,12 +50,14 @@ inline sched_dequeue(del, tid)
 
 inline sched_elect(flags, tid)
 {
+    d_step { assert(scheduler_check == 0); scheduler_check = 1 };
     sched_bitmap_elect(flags, tid);
     if
     :: SELE(tid, curUser != IDLE_THREAD) ->
         AWAITS(tid, ti[curUser - USER0].ti_state = THREAD_STATE_RUNNING)
     :: ELSE(tid, curUser != IDLE_THREAD)
-    fi
+    fi;
+    scheduler_check = 0
 }
 
 #endif /* _SCHED_ */
