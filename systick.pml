@@ -19,6 +19,11 @@ inline systick_bh()
         ti[USER0 + 1 - USER0].ti_state = THREAD_STATE_ACTIVED;
         ti_add_tail(USER0 + 1, sched_bm[SCHED_BITMAP_ACTIVE], get_ti_prio(USER0 + 1), NB_WAIT_TASKS);
         set_bit(get_ti_prio(USER0 + 1), sched_bm[SCHED_BITMAP_ACTIVE].map)
+        assert(get_ti_state(USER0 + 1) == THREAD_STATE_ACTIVED &&
+               get_bit(get_ti_prio(USER0 + 1), sched_bm[SCHED_BITMAP_ACTIVE].map) &&
+               (sched_bm[SCHED_BITMAP_ACTIVE].queue[get_ti_prio(USER0 + 1) * NB_WAIT_TASKS + 0] == USER0 + 1 ||
+                sched_bm[SCHED_BITMAP_ACTIVE].queue[get_ti_prio(USER0 + 1) * NB_WAIT_TASKS + 1] == USER0 + 1 ||
+                sched_bm[SCHED_BITMAP_ACTIVE].queue[get_ti_prio(USER0 + 1) * NB_WAIT_TASKS + 2] == USER0 + 1));
     :: else
     fi
 }

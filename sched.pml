@@ -35,6 +35,11 @@ inline sched_enqueue(new, tid)
 {
     AWAITS(tid, ti[new - USER0].ti_state = THREAD_STATE_ACTIVED);
     sched_bitmap_enqueue(new, get_ti_prio(new), tid)
+    assert(get_ti_state(new) == THREAD_STATE_ACTIVED &&
+           get_bit(get_ti_prio(new), sched_bm[SCHED_BITMAP_ACTIVE].map) &&
+           (sched_bm[SCHED_BITMAP_ACTIVE].queue[get_ti_prio(new) * NB_WAIT_TASKS + 0] == new ||
+            sched_bm[SCHED_BITMAP_ACTIVE].queue[get_ti_prio(new) * NB_WAIT_TASKS + 1] == new ||
+            sched_bm[SCHED_BITMAP_ACTIVE].queue[get_ti_prio(new) * NB_WAIT_TASKS + 2] == new));
 }
 
 inline sched_dequeue(del, tid)
@@ -42,10 +47,14 @@ inline sched_dequeue(del, tid)
     if
     :: SELE(tid, get_ti_state(del) == THREAD_STATE_ACTIVED) ->
         sched_bitmap_dequeue(del, get_ti_prio(del), sched_bm[SCHED_BITMAP_ACTIVE], tid)
+        assert(sched_bm[SCHED_BITMAP_ACTIVE].queue[get_ti_prio(del) * NB_WAIT_TASKS] != UNKNOWN ||
+               !get_bit(get_ti_prio(del), sched_bm[SCHED_BITMAP_ACTIVE].map));
     :: SELE(tid, get_ti_state(del) == THREAD_STATE_EXPIRED) ->
         sched_bitmap_dequeue(del, get_ti_prio(del), sched_bm[SCHED_BITMAP_EXPIRE], tid)
+        assert(sched_bm[SCHED_BITMAP_EXPIRE].queue[get_ti_prio(del) * NB_WAIT_TASKS] != UNKNOWN ||
+               !get_bit(get_ti_prio(del), sched_bm[SCHED_BITMAP_EXPIRE].map));
     :: ELSE(tid, get_ti_state(del) == THREAD_STATE_ACTIVED || get_ti_state(del) == THREAD_STATE_EXPIRED)
-    fi
+    fi;
 }
 
 inline sched_elect(flags, tid)
