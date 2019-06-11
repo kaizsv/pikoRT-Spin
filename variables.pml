@@ -29,7 +29,7 @@
  *     byte ctxt_ATStack[(NBUSERS + 1) * NBCTXT];
  *     int ctxt_ATTop[NBUSERS + 1];
  */
-#define NBUSERS 2
+#define NBUSERS 3
 #define NBINTS 2
 #define SVC 0
 #define PendSV 1
