@@ -6,7 +6,7 @@
 #include "sched.pml"
 #include "helper.pml"
 
-#define NBMUTEX 2
+#define NBMUTEX 1
 typedef mutex_head {
     byte queue[NBMUTEX] = UNKNOWN
 };

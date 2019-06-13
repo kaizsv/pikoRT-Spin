@@ -8,7 +8,7 @@
 
 /* XXX: increase NB_WAIT_TASKS if more than two user tasks are
  *      in the same priority */
-#define NB_WAIT_TASKS 3
+#define NB_WAIT_TASKS 2
 typedef bitmap_struct {
     unsigned map : NBITMAP_BIT = 0
     byte queue[NBITMAP_BIT * NB_WAIT_TASKS] = UNKNOWN

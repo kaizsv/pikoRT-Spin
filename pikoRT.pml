@@ -9,7 +9,7 @@
 #include "specifications.pml"
 #endif
 
-bit cs_c, cs_p, cs_3;
+bit cs_c, cs_p;
 
 #define get_pending(irq, pending) get_bit(irq - 2, pending)
 
@@ -315,7 +315,7 @@ proctype consumer(chan svc_chan)
 loop:
     mutex_lock(mutex, cs_c, svc_chan, evalPID);
 cs:
-    assert(!cs_p && !cs_3);
+    A_AWAITS(evalPID, assert(!cs_p); sys_call(SYS_PTHREAD_YIELD, svc_chan));
     mutex_unlock(mutex, cs_c, svc_chan, evalPID);
 
     goto loop
@@ -328,21 +328,8 @@ proctype producer(chan svc_chan)
 loop:
     mutex_lock(mutex, cs_p, svc_chan, evalPID);
 cs:
-    A_AWAITS(evalPID, assert(!cs_c && !cs_3); sys_call(SYS_PTHREAD_YIELD, svc_chan));
+    assert(!cs_c);
     mutex_unlock(mutex, cs_p, svc_chan, evalPID);
-
-    goto loop
-}
-
-proctype task3(chan svc_chan)
-{
-    bit ne;
-    assert(evalPID == USER0 + 2);
-loop:
-    mutex_lock(mutex, cs_3, svc_chan, evalPID);
-cs:
-    assert(!cs_c && !cs_p);
-    mutex_unlock(mutex, cs_3, svc_chan, evalPID);
 
     goto loop
 }
@@ -387,7 +374,6 @@ init
             if
             :: idx == USER0 -> run consumer(svc_chan)
             :: idx == (USER0 + 1) -> run producer(svc_chan)
-            :: idx == (USER0 + 2) -> run task3(svc_chan)
             fi
         }
         idx = 0;
