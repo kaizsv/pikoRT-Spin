@@ -99,98 +99,86 @@ inline inATStack(proc)
     idx = 0
 }
 
-/* return true if preemption can preempt the running task, and
- * false otherwise. */
-inline interrupt_policy(preempt, running, ret)
-{
-    if
-    :: preempt == running ->
-        /* XXX: The irq is triggered by the running of process. It will not
-         * trigger again while the related interrupt process are running. */
-        assert(PendSV < preempt && preempt < USER0);
-        assert(get_pending(preempt, ghost_direct_AT));
-        /* the preemption can not be self */
-        assert(ret == false)
-    :: running >= USER0 ->
-        /* the exception always takes while user task is running
-         * and there remain nothing in ATStack */
-        assert(ATTop <= 0 && preempt != SVC);
-        /* if PendSV preempt user task, setting the pending bit of PendSV
-         * has no side-effect */
-        set_pending(preempt, irq_pending);
-        ret = true
-    :: else ->
-        /* nested interrupt: running < USER0
-         * compare the priority of pending and preemtive exception */
-        assert(ret == false && !get_pending(preempt, ghost_direct_AT));
-        set_pending(preempt, irq_pending);
-        if
-        :: irq_prio[preempt] < irq_prio[running] ->
-            /* preempt directly, and not from irq_pending */
-            ret = true
-        :: else
-        fi
-    fi
-}
-
 inline ITake(proc)
 {
     do
-    :: atomic {
-        d_step { interrupt_policy(proc, AT, retPolicy) };
+    :: atomic { proc == AT ->
+        /* XXX: The irq is triggered by the running of process. It will not
+         * trigger again while the related interrupt process are running. */
+        assert(PendSV < proc && proc < USER0);
+        assert(get_pending(proc, ghost_direct_AT));
+        /* the proc can not be self */
+        /* change AT directly from IRet or irq_pending from
+         * interrupt_policy, similar to tail-chaining */
+        inATStack(proc);
+        clear_pending(proc, ghost_direct_AT);
+        clear_pending(proc, irq_pending);
+        break
+       }
+    :: atomic { AT >= USER0 ->
+        /* the exception always takes while user task is running
+         * and there remain nothing in ATStack */
+        assert(ATTop <= 0 && proc != SVC);
+        /* if PendSV proc user task, setting the pending bit of PendSV
+         * has no side-effect */
         if
-        :: retPolicy ->
-            d_step {
-                inATStack(proc);
-                retPolicy = false;
-                clear_pending(proc, irq_pending);
-                /* late arrival
-                 * current process AT is changed by change_AT_directly and been
-                 * preempt by higher priority exception, however, AT has not
-                 * process the ITake to clear the ghost bit. Thus, can not push
-                 * to the ATStack. */
-                if
-                :: PendSV < AT && AT < USER0 && get_pending(AT, ghost_direct_AT) ->
-                    clear_pending(AT, ghost_direct_AT);
-                    AT = proc
-                :: else ->
-                    push_and_change_AT(proc)
-                fi
-            }; break
-        :: !retPolicy && get_pending(proc, ghost_direct_AT) ->
-            /* change AT directly from IRet or irq_pending from
-             * interrupt_policy, similar to tail-chaining */
-            d_step {
-                inATStack(proc);
-                clear_pending(proc, ghost_direct_AT);
-                clear_pending(proc, irq_pending)
-            }; break
+        :: irq_pending == 0 && PendSV_pending == 0 ->
+            inATStack(proc);
+            push_and_change_AT(proc);
+            break
         :: else
-        fi }
+        fi
+       }
+    :: atomic { else ->
+        /* nested interrupt: running < USER0
+         * compare the priority of pending and preemtive exception */
+        assert(!get_pending(proc, ghost_direct_AT));
+        if
+        :: irq_prio[proc] < irq_prio[AT] ->
+            /* proc directly, and not from irq_pending */
+            inATStack(proc);
+            /* late arrival
+             * current process AT is changed by change_AT_directly and been
+             * proc by higher priority exception, however, AT has not
+             * process the ITake to clear the ghost bit. Thus, can not push
+             * to the ATStack. */
+            if
+            :: PendSV < AT && AT < USER0 && get_pending(AT, ghost_direct_AT) ->
+                clear_pending(AT, ghost_direct_AT);
+                AT = proc
+            :: else ->
+                push_and_change_AT(proc)
+            fi;
+            break
+        :: else ->
+            set_pending(proc, irq_pending);
+        fi
+       }
     od
 }
 
 inline PendSVTake()
 {
     do
-    :: atomic {
+    :: atomic { PendSV_pending && (AT == PendSV) ->
+        assert(PendSV_ghost_direct_AT);
+        inATStack(PendSV);
+        PendSV_pending = 0;
+        PendSV_ghost_direct_AT = 0;
+        break
+       }
+    :: atomic { PendSV_pending && (AT >= USER0) ->
+        assert(ATTop <= 0 && AT != PendSV);
         if
-        :: PendSV_pending && (AT == PendSV) ->
-            d_step {
-                assert(PendSV_ghost_direct_AT);
-                inATStack(PendSV);
-                PendSV_pending = 0;
-                PendSV_ghost_direct_AT = 0
-            }; break
-        :: PendSV_pending && (AT >= USER0) ->
-            d_step {
-                inATStack(PendSV);
-                assert(ATTop <= 0 && AT != PendSV);
-                push_and_change_AT(PendSV);
-                PendSV_pending = 0
-            }; break
+        :: irq_pending == 0 ->
+            inATStack(PendSV);
+            push_and_change_AT(PendSV);
+            PendSV_pending = 0;
         :: else
-        fi }
+        fi
+        break
+       }
+    :: else
     od
 }
 
